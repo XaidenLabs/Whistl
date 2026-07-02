@@ -295,7 +295,7 @@ async function settlePact(
 
   push(fixtureId, "settle_start", `Settling pact ${pact.pactId}: "${pact.statement}" — final value: ${val} → ${isTrue ? "TRUE ✓" : "FALSE ✗"}`);
 
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   let txSig: string | null = null;
 
   // Detect demo pacts (non-numeric IDs like "demo-001") — skip on-chain, just log outcome.
