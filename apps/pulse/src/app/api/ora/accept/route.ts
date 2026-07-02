@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     // body may contain { fixtureId, p1, p2, pact } for the sentinel to track.
     if (body?.fixtureId && body?.p1 && body?.p2 && body?.pact) {
       fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/api/ora/keeper`,
+        `${process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")}/api/ora/keeper`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "BAD_PACT_ID" }, { status: 400 });
   }
 
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
   // ── Step 1: Fetch proof FIRST — if the match isn't over this will fail and we
   //    return early without touching any on-chain state.

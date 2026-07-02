@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     // Fetch the Merkle proof from TxLINE via our proxy.
-    const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+    const base = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
     const proofUrl = `${base}/api/txline/proof?fixtureId=${fixtureId}&statAKey=${statAKey}${statBKey ? `&statBKey=${statBKey}` : ""}`;
     const proofRes = await fetch(proofUrl, { cache: "no-store" });
 
