@@ -103,6 +103,14 @@ export async function POST(req: Request) {
   }
 
   const proofJson = await proofRes.json();
+  // Proof route returns 200 + ok:false for "match live" / "result finalizing" — surface that
+  // friendly message and DON'T touch chain or settle on stale data.
+  if (!proofJson.ok) {
+    return NextResponse.json(
+      { ok: false, error: proofJson.error, matchNotFinished: proofJson.matchNotFinished ?? proofJson.notReady },
+      { status: 200 },
+    );
+  }
   const proof = proofJson.proof as SettlePactProof;
   if (!proof?.summary) {
     return NextResponse.json({ ok: false, error: "INVALID_PROOF" }, { status: 502 });

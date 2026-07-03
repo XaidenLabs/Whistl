@@ -12,7 +12,7 @@ import { twMerge } from "tailwind-merge";
 import type { BacktestSummary, StrategySpec } from "@/lib/agent/strategy";
 import { actionText, conditionText, oddsLabel, selectionShort, sideVerb } from "@/lib/agent/humanize";
 import UserBar from "@/components/UserBar";
-import BetModal, { type BetFixture } from "@/components/BetModal";
+import Link from "next/link";
 
 function cn(...i: ClassValue[]) {
   return twMerge(clsx(i));
@@ -149,7 +149,6 @@ export default function TradingDesk() {
   const record = ledgerData?.record;
   const metrics = ledgerData?.metrics;
   const [deploying, setDeploying] = useState(false);
-  const [betFixture, setBetFixture] = useState<BetFixture | null>(null);
 
   async function deploy() {
     if (!spec || deploying) return;
@@ -305,17 +304,16 @@ export default function TradingDesk() {
                 <p className="p-3 text-[11px] text-gray-600">No live or upcoming games in range.</p>
               )}
               {markets.length > 0 && (
-                <p className="px-1 pb-1 text-[9px] text-gray-600">Tap a match to place your own trade →</p>
+                <p className="px-1 pb-1 text-[9px] text-gray-600">Tap a match to open its live chart & trade →</p>
               )}
               {markets.map((m) => (
-                <button key={m.FixtureId}
-                  onClick={() => setBetFixture({ FixtureId: m.FixtureId, Participant1: m.Participant1, Participant2: m.Participant2 })}
+                <Link key={m.FixtureId} href={`/market/${m.FixtureId}`}
                   className="flex w-full items-center justify-between gap-2 rounded border border-white/5 bg-[#0d0d0d] px-3 py-2 text-xs transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5">
                   <span className="truncate text-left text-gray-300">{m.Participant1} <span className="text-gray-600">v</span> {m.Participant2}</span>
                   {m.phase === "live"
                     ? <span className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-400"><span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />LIVE</span>
                     : <span className="shrink-0 text-[10px] text-gray-500">{kickoff(m.StartTime)}</span>}
-                </button>
+                </Link>
               ))}
             </div>
           </Panel>
@@ -351,7 +349,6 @@ export default function TradingDesk() {
         </section>
       </main>
 
-      {betFixture && <BetModal fixture={betFixture} onClose={() => setBetFixture(null)} />}
     </div>
   );
 }
