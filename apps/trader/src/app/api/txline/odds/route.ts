@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOddsSnapshot, TxlineTokenMissing } from "@/lib/txline/server";
-import { parse1X2 } from "@/lib/txline/types";
+import { parse1X2, parseOU } from "@/lib/txline/types";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,9 +10,10 @@ export async function GET(request: Request) {
 
   try {
     const oddsData = await getOddsSnapshot(fixtureId);
-    // Parse 1X2 market to make it easy for frontend
+    // Parse 1X2 + Over/Under goals markets for the frontend.
     const odds = parse1X2(oddsData as any);
-    return NextResponse.json({ ok: true, odds });
+    const ou = parseOU(oddsData as any);
+    return NextResponse.json({ ok: true, odds, ou });
   } catch (e) {
     if (e instanceof TxlineTokenMissing) {
       return NextResponse.json({ ok: false, error: "TXLINE_TOKEN_MISSING" }, { status: 503 });

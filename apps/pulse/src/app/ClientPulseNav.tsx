@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Radio, Dices, Users, Zap, Brain } from "lucide-react";
+import { Radio, Dices, Users, Zap, Sparkles } from "lucide-react";
 
 const TABS = [
   { href: "/", label: "Feed", Icon: Radio, exact: true },
   { href: "/hilo", label: "Hi-Lo", Icon: Dices },
-  { href: "/sweepstake", label: "Sweeps", Icon: Users },
+  { href: "/sweepstake", label: "Friends", Icon: Users },
   { href: "/alerts", label: "Alerts", Icon: Zap },
-  { href: "/mind", label: "Mind", Icon: Brain },
+  { href: "/mind", label: "ORA AI", Icon: Sparkles },
 ];
 
 export default function ClientPulseNav() {

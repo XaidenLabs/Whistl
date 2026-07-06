@@ -62,13 +62,13 @@ export function reasoningFor(
   const move = m.probChange != null ? Math.abs(Math.round(m.probChange)) : null;
   switch (spec.trigger.type) {
     case "prob_below":
-      return `Priced as an underdog at ${pct}% — rule sees value, entering.`;
+      return `Priced as an underdog at ${pct}% · rule sees value, entering.`;
     case "prob_above":
-      return `Firm favourite at ${pct}% — backing them to convert.`;
+      return `Firm favourite at ${pct}% · backing them to convert.`;
     case "odds_drop":
-      return `Win-chance jumped +${move}pp to ${pct}% as money came in — following the smart money.`;
+      return `Win-chance jumped +${move}pp to ${pct}% as money came in · following the smart money.`;
     case "odds_rise":
-      return `Chance drifted -${move}pp to ${pct}% — market cooling, fading the move.`;
+      return `Chance drifted -${move}pp to ${pct}% · market cooling, fading the move.`;
     default:
       return `Entry signal at ${pct}% implied.`;
   }

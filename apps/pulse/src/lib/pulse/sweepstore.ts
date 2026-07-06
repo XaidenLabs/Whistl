@@ -30,7 +30,7 @@ async function resolveBackend(): Promise<"supabase" | "memory"> {
   backend = error ? "memory" : "supabase";
   if (error) {
     console.warn(
-      "[sweepstake] tables not found — using in-memory store. Run supabase/sweepstakes.sql to persist.",
+      "[sweepstake] tables not found · using in-memory store. Run supabase/sweepstakes.sql to persist.",
     );
   }
   return backend;

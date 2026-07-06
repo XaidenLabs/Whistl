@@ -79,10 +79,10 @@ export default function MatchView() {
       // Real sharp-money detection: fires when the live TxLINE line shortens hard (≥0.5)
       // between two polls — a genuine market move, not a simulated one.
       if (prev.home - home >= 0.5) {
-        setWhaleAlert(`🚨 SHARP MOVE: money piling onto ${p1} — odds shortened ${prev.home.toFixed(2)} → ${home.toFixed(2)}`);
+        setWhaleAlert(`🚨 SHARP MOVE: money piling onto ${p1} · odds shortened ${prev.home.toFixed(2)} → ${home.toFixed(2)}`);
         setTimeout(() => setWhaleAlert(null), 8000);
       } else if (prev.away - away >= 0.5) {
-        setWhaleAlert(`🚨 SHARP MOVE: money piling onto ${p2} — odds shortened ${prev.away.toFixed(2)} → ${away.toFixed(2)}`);
+        setWhaleAlert(`🚨 SHARP MOVE: money piling onto ${p2} · odds shortened ${prev.away.toFixed(2)} → ${away.toFixed(2)}`);
         setTimeout(() => setWhaleAlert(null), 8000);
       }
     }
@@ -204,7 +204,7 @@ export default function MatchView() {
           ) : score?.phase === "finished" ? (
             <span className="font-mono text-xs text-text-dim">FT</span>
           ) : (
-            <span className="font-mono text-xs text-text-dim">—</span>
+            <span className="font-mono text-xs text-text-dim">·</span>
           )}
         </div>
         <ScoreSide name={p2} goals={score?.p2Goals} alignRight />
@@ -219,7 +219,7 @@ export default function MatchView() {
       {/* Micro Prediction Widget */}
       {score?.phase === "live" && (
         <div className="mt-4 rounded-2xl border border-signal/30 bg-signal/5 p-4">
-          <h3 className="font-mono text-[11px] uppercase tracking-wider text-signal mb-2">Live Prop Bet</h3>
+          <h3 className="font-mono text-[11px] uppercase tracking-wider text-signal mb-2">Quick Predict</h3>
           {!prediction ? (
             <div className="flex items-center justify-between">
               <p className="text-sm text-text">Will there be a corner in the next 10 mins?</p>
@@ -249,7 +249,7 @@ export default function MatchView() {
       {/* AI pundit card */}
       <div className="mt-6 flex items-center justify-between">
         <h2 className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-text-dim">
-          <Sparkles className="size-3.5 text-proof" aria-hidden /> ORA on the mic
+          <Sparkles className="size-3.5 text-proof" aria-hidden /> AI Match Commentary
         </h2>
         <button
           type="button"
@@ -269,7 +269,7 @@ export default function MatchView() {
       {loading && <CardSkeleton />}
       {error && (
         <p className="mt-2 rounded-xl border border-live/30 bg-live/5 p-4 text-sm text-live">
-          {error === "TXLINE_TOKEN_MISSING" ? "Live data warming up — try again shortly." : error}
+          {error === "TXLINE_TOKEN_MISSING" ? "Live data warming up · try again shortly." : error}
         </p>
       )}
 
@@ -285,7 +285,7 @@ export default function MatchView() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-ink via-ink to-transparent pt-12 pb-6 px-4 pointer-events-none flex justify-center z-10">
         <p className="flex items-center gap-1.5 font-mono text-[10px] text-text-dim/80 pointer-events-auto bg-ink/80 px-3 py-1.5 rounded-full border border-line/50 backdrop-blur-md">
-          <Radio className="size-3" aria-hidden /> Commentary from live TxLINE data · refreshes on demand
+          <Radio className="size-3" aria-hidden /> Live AI commentary · powered by real match data
         </p>
       </div>
     </div>
@@ -321,18 +321,19 @@ function CommentaryCardView({ card, timestamp, signature, onPlayTTS }: { card: C
             href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-[9px] text-proof flex items-center gap-1 hover:underline"
-            title="Verify ORA's reasoning on Solana"
+            className="font-mono text-[9px] text-proof flex items-center gap-1 hover:underline group"
+            title="This prediction is publicly verifiable"
           >
-            inscribed on-chain <span className="size-1 bg-proof rounded-full inline-block"></span> verify ↗
+            <span className="group-hover:hidden">Verified prediction ✓</span>
+            <span className="hidden group-hover:inline">View proof ↗</span>
           </a>
         ) : timestamp ? (
           <span className="font-mono text-[9px] text-text-dim/70 flex items-center gap-1">
-            on-chain memory <span className="size-1 bg-text-dim/40 rounded-full inline-block"></span> SAVED {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <span className="size-1 bg-proof/40 rounded-full inline-block"></span> Saved {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         ) : (
           <span className="font-mono text-[9px] text-text-dim/70">
-            on-chain memory · saving...
+            Saving prediction…
           </span>
         )}
       </div>

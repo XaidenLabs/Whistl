@@ -46,7 +46,7 @@ function buildPrompt(c: MatchContext): ChatMessage[] {
       role: "system",
       content:
         "You are a sharp, witty football co-commentator for casual World Cup fans. " +
-        "Explain the moment in plain, exciting language — no jargon, no betting slang. " +
+        "Explain the moment in plain, exciting language · no jargon, no betting slang. " +
         "Reply with ONLY a JSON object: " +
         '{"headline": string (max 12 words), "analysis": string (1-2 sentences), "market": string (1 sentence on what the odds imply for a casual fan)}.',
     },
@@ -73,10 +73,10 @@ function templateCard(c: MatchContext): CommentaryCard {
 
   const headline =
     c.phase === "upcoming"
-      ? `${c.p1} vs ${c.p2} — about to kick off`
+      ? `${c.p1} vs ${c.p2} · about to kick off`
       : c.phase === "finished"
         ? `Full time: ${scoreline(c)}`
-        : `${lead} — ${scoreline(c)}`;
+        : `${lead} · ${scoreline(c)}`;
 
   const analysis =
     c.phase === "upcoming"
@@ -92,8 +92,8 @@ function templateCard(c: MatchContext): CommentaryCard {
         : c.p2
       : null;
   const market = fav
-    ? `The market still leans toward ${fav} — but momentum can flip fast.`
-    : `No clear favourite right now — this one's wide open.`;
+    ? `The market still leans toward ${fav} · but momentum can flip fast.`
+    : `No clear favourite right now · this one's wide open.`;
 
   return { headline, analysis, market, source: "template" };
 }

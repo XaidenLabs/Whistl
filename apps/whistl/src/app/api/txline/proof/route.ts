@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     // Don't settle a match that isn't over — the corners/goals aren't final.
     if (!parsed.isFinished) {
       return NextResponse.json(
-        { ok: false, matchNotFinished: true, error: "Match still in play — settles automatically after full time." },
+        { ok: false, matchNotFinished: true, error: "Match still in play · settles automatically after full time." },
         { status: 200 },
       );
     }
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
           {
             ok: false,
             notReady: true,
-            error: "Full time — TxLINE is finalizing the result on-chain. This takes a few minutes; try settling again shortly.",
+            error: "Full time · TxLINE is finalizing the result on-chain. This takes a few minutes; try settling again shortly.",
           },
           { status: 200 },
         );

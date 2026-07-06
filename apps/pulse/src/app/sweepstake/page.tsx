@@ -59,7 +59,7 @@ export default function SweepstakeIndex() {
       </div>
       <p className="mb-5 text-sm text-text-dim">
         Make a group, share one link. Everyone gets a random World Cup team and the leaderboard
-        updates live — no spreadsheet, no admin.
+        updates live · no spreadsheet, no admin.
       </p>
 
       {/* Your groups */}

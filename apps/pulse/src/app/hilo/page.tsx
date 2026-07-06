@@ -188,7 +188,7 @@ export default function HiLoGame() {
               }`}
             >
               {reveal.correct ? <Check className="size-3.5" /> : <X className="size-3.5" />}
-              {reveal.push ? "Push — exactly equal!" : reveal.correct ? "Correct!" : "Missed it"}
+              {reveal.push ? "Push · exactly equal!" : reveal.correct ? "Correct!" : "Missed it"}
             </p>
           </>
         ) : (

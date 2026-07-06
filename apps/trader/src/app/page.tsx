@@ -1,577 +1,148 @@
-"use client";
-
-import { useEffect, useMemo, useRef, useState } from "react";
-import useSWR from "swr";
-import {
-  Zap, Activity, SquareTerminal, Play, Sparkles, ShieldCheck, Loader2,
-  TrendingUp, TrendingDown, Cpu, ArrowRight, Radio, Send, ExternalLink,
-} from "lucide-react";
-import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, Tooltip, ReferenceLine } from "recharts";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-import type { BacktestSummary, StrategySpec } from "@/lib/agent/strategy";
-import { actionText, conditionText, oddsLabel, selectionShort, sideVerb } from "@/lib/agent/humanize";
-import UserBar from "@/components/UserBar";
 import Link from "next/link";
+import { Brain, MousePointerClick, ShieldCheck, Trophy, ArrowRight } from "lucide-react";
+import Header from "@/components/Header";
+import OraLiveCard from "@/components/OraLiveCard";
 
-function cn(...i: ClassValue[]) {
-  return twMerge(clsx(i));
-}
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+// Landing page for TxAGENT Desk. The home experience is dead simple: ORA calls its picks from
+// live TxLINE odds, you back them in one tap. Power tools (build-your-own agent) live at /ora.
 
-// "Today 18:00" / "Tomorrow 21:00" / "12 Jul 18:00" for upcoming kickoffs.
-function kickoff(ts: number): string {
-  const d = new Date(ts);
-  const now = new Date();
-  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-  if (d.toDateString() === now.toDateString()) return `Today ${time}`;
-  if (d.toDateString() === tomorrow.toDateString()) return `Tomorrow ${time}`;
-  return `${d.toLocaleDateString([], { day: "numeric", month: "short" })} ${time}`;
-}
-
-type LogType = "info" | "warn" | "exec" | "success" | "error";
-type Log = { time: string; msg: string; type: LogType };
-
-const EXAMPLES = [
-  "Back the underdog to win when their odds shorten more than 8% before kickoff — the market is telling me something.",
-  "Lay the favourite whenever they're priced above 65%. Fade the public.",
-  "Back the home team whenever they're a live underdog below 35% implied.",
+const STEPS = [
+  {
+    icon: <Brain className="size-4" />,
+    n: "01",
+    t: "ORA calls its pick",
+    d: "ORA reads every live World Cup market and names the side it rates highest · inscribed on Solana, verifiable by anyone.",
+  },
+  {
+    icon: <MousePointerClick className="size-4" />,
+    n: "02",
+    t: "You tap Back",
+    d: "One tap backs ORA's pick with your free paper wallet. No forms, no picking · just follow the AI.",
+  },
+  {
+    icon: <Trophy className="size-4" />,
+    n: "03",
+    t: "Win on the real result",
+    d: "When the match ends, your bet settles automatically against the real TxLINE score. Right = you keep the winnings.",
+  },
 ];
 
-
-export default function TradingDesk() {
-  // ── Live market universe (real TxLINE fixtures) ──────────────────────────────
-  const { data: fxData, error: fxError } = useSWR<{ ok: boolean; fixtures: { FixtureId: number; Participant1: string; Participant2: string; StartTime: number; Competition: string }[]; error?: string }>(
-    "/api/txline/fixtures", fetcher, { refreshInterval: 60_000 },
-  );
-  const marketsError = Boolean(fxError) || (fxData && fxData.ok === false);
-  const markets = useMemo(() => {
-    const now = Date.now();
-    const LIVE_MS = 2.5 * 3600e3;
-    return (fxData?.fixtures ?? [])
-      .map((f) => ({
-        ...f,
-        phase: (now < f.StartTime ? "upcoming" : now < f.StartTime + LIVE_MS ? "live" : "finished") as
-          | "upcoming" | "live" | "finished",
-      }))
-      .filter((f) => f.phase !== "finished") // finished games can't be traded — exclude them
-      .sort((a, b) => Number(b.phase === "live") - Number(a.phase === "live") || a.StartTime - b.StartTime)
-      .slice(0, 12);
-  }, [fxData]);
-
-  // ── Terminal ─────────────────────────────────────────────────────────────────
-  // Seed with static lines (no Date → no hydration mismatch) so the terminal is never blank,
-  // even before client JS hydrates.
-  const [logs, setLogs] = useState<Log[]>([
-    { time: "--:--:--", msg: "TxAgent runtime online.", type: "info" },
-    { time: "--:--:--", msg: "Connecting to TxLINE decentralized feed…", type: "info" },
-  ]);
-  const termRef = useRef<HTMLDivElement>(null);
-  const stickToBottom = useRef(true);
-  const addLog = (msg: string, type: LogType = "info") =>
-    setLogs((p) => [...p, { time: new Date().toLocaleTimeString(), msg, type }]);
-  useEffect(() => {
-    setLogs([
-      { time: new Date().toLocaleTimeString(), msg: "TxAgent runtime online.", type: "info" },
-      { time: new Date().toLocaleTimeString(), msg: "TxLINE decentralized feed connected · World Cup 2026.", type: "success" },
-      { time: new Date().toLocaleTimeString(), msg: "Describe a strategy in plain English to begin.", type: "info" },
-    ]);
-  }, []);
-  // Auto-scroll to the newest line ONLY if you're already at the bottom — so scrolling up to
-  // read earlier logs isn't yanked back down by incoming ones.
-  useEffect(() => {
-    const el = termRef.current;
-    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-  }, [logs]);
-
-  // ── Strategy compose + compile ───────────────────────────────────────────────
-  const [text, setText] = useState("");
-  const [spec, setSpec] = useState<StrategySpec | null>(null);
-  const [compiling, setCompiling] = useState(false);
-
-  async function compile() {
-    if (!text.trim() || compiling) return;
-    setCompiling(true);
-    setSpec(null);
-    setBacktest(null);
-    addLog("Compiling natural-language strategy via ACE (gpt-4o-mini)…", "exec");
-    try {
-      const r = await fetch("/api/agent/compile", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const j = await r.json();
-      if (!j.ok) { addLog("Compile failed: " + j.error, "error"); return; }
-      setSpec(j.spec);
-      addLog(`✓ Compiled "${j.spec.name}" — ${j.source === "ace" ? "ACE" : "heuristic"}. Ready to backtest.`, "success");
-    } catch (e) {
-      addLog("Compile error: " + (e as Error).message, "error");
-    } finally {
-      setCompiling(false);
-    }
-  }
-
-  // ── Backtest ─────────────────────────────────────────────────────────────────
-  const [backtest, setBacktest] = useState<(BacktestSummary & { matchesScanned: number }) | null>(null);
-  const [testing, setTesting] = useState(false);
-
-  async function runBacktest() {
-    if (!spec || testing) return;
-    setTesting(true);
-    addLog("Replaying strategy over real World Cup match data (Merkle-verified)…", "exec");
-    try {
-      const r = await fetch("/api/agent/backtest", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ spec }),
-      });
-      const j = await r.json();
-      if (!j.ok) { addLog("Backtest failed: " + j.error, "error"); return; }
-      setBacktest({ ...j.summary, matchesScanned: j.matchesScanned });
-      const s = j.summary;
-      addLog(
-        `✓ Backtest complete · ${s.count} bets across ${j.matchesScanned} matches · ${(s.winRate * 100).toFixed(0)}% won · profit ${s.pnl > 0 ? "+" : ""}${s.pnl} USDC`,
-        s.pnl >= 0 ? "success" : "warn",
-      );
-    } catch (e) {
-      addLog("Backtest error: " + (e as Error).message, "error");
-    } finally {
-      setTesting(false);
-    }
-  }
-
-  // ── Deploy live + on-chain ledger ────────────────────────────────────────────
-  const { data: ledgerData, mutate: mutateLedger } = useSWR<{ ok: boolean; calls: LedgerCall[]; record?: LedgerRecord; metrics?: LedgerMetrics }>(
-    "/api/agent/ledger", fetcher, { refreshInterval: 20_000 },
-  );
-  const ledger = ledgerData?.calls ?? [];
-  const record = ledgerData?.record;
-  const metrics = ledgerData?.metrics;
-  const [deploying, setDeploying] = useState(false);
-
-  async function deploy() {
-    if (!spec || deploying) return;
-    setDeploying(true);
-    addLog(`Deploying "${spec.name}" — scanning live markets for entry signals…`, "exec");
-    try {
-      const r = await fetch("/api/agent/deploy", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ spec }),
-      });
-      const j = await r.json();
-      if (!j.ok) { addLog("Deploy failed: " + j.error, "error"); return; }
-      if (j.inscribed === 0) {
-        addLog(`No open markets to price right now — agent is armed and watching.`, "warn");
-      } else {
-        addLog(
-          j.bestFit
-            ? `✓ No strict signal — agent took its ${j.inscribed} best-fit position${j.inscribed !== 1 ? "s" : ""}, inscribed on Solana.`
-            : `✓ Agent fired on ${j.fired} signal${j.fired !== 1 ? "s" : ""} · ${j.inscribed} call${j.inscribed !== 1 ? "s" : ""} inscribed on Solana.`,
-          "success",
-        );
-        (j.calls as LedgerCall[]).forEach((c) =>
-          addLog(`◉ ${c.match} — ${c.side.toUpperCase()} ${c.selection} @ ${c.odds} · tx ${c.signature.slice(0, 12)}…`, "success"));
-        mutateLedger();
-      }
-    } catch (e) {
-      addLog("Deploy error: " + (e as Error).message, "error");
-    } finally {
-      setDeploying(false);
-    }
-  }
-
+export default function Landing() {
   return (
-    <div className="flex h-screen w-full flex-col bg-[#050505] text-gray-300 font-mono overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-white/10 bg-black px-6 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-emerald-500/20 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-            <Zap className="size-4" />
+    <div className="flex min-h-screen flex-col bg-[#050505] font-mono text-gray-300">
+      <Header tagline="back the AI · win if it's right" />
+
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="relative overflow-hidden border-b border-white/10">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.08),transparent_60%)]" aria-hidden />
+          <div className="relative mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 lg:py-24">
+            <div>
+              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-wider text-gray-400">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                World Cup 2026 · verifiable AI picks
+              </p>
+              <h1 className="font-sans text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl">
+                Back the AI.
+                <br />
+                Win if it&apos;s <span className="text-emerald-400">right</span>.
+              </h1>
+              <p className="mt-5 max-w-xl font-sans text-sm leading-relaxed text-gray-400 sm:text-base">
+                ORA is an on-chain AI that reads every World Cup market and calls its pick. Tap once to back it
+                with your free paper wallet · you win if ORA&apos;s right. Every call is inscribed on Solana and
+                settled by a TxLINE proof. No black box, no admin.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/markets" className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-black transition-opacity hover:opacity-90">
+                  Browse markets →
+                </Link>
+                <Link href="/ora" className="rounded-lg border border-white/15 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/5">
+                  Meet ORA →
+                </Link>
+              </div>
+            </div>
           </div>
-          <h1 className="text-sm font-bold tracking-widest text-white">
-            TxAGENT <span className="text-gray-600">|</span> DESK
-          </h1>
-          <span className="hidden sm:inline rounded bg-white/5 px-2 py-0.5 text-[10px] text-gray-500">
-            describe your edge · deploy a verifiable agent
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden items-center gap-2 text-xs text-emerald-400 md:flex">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            TXLINE CONNECTED
-          </span>
-          <UserBar />
-        </div>
-      </header>
-
-      <main className="flex flex-1 overflow-hidden">
-        {/* Left: compose + backtest */}
-        <section className="flex w-2/3 flex-col overflow-y-auto border-r border-white/10 bg-[#0a0a0a]">
-          {/* Compose */}
-          <Panel icon={<Sparkles className="size-3" />} title="COMPOSE STRATEGY">
-            <div className="p-5">
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) compile(); }}
-                placeholder="e.g. Back the underdog when their odds shorten more than 8% before kickoff…"
-                rows={3}
-                className="w-full resize-none rounded-lg border border-white/10 bg-black p-3 text-sm text-white placeholder:text-gray-600 outline-none focus:border-emerald-500/50"
-              />
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {EXAMPLES.map((ex, i) => (
-                  <button key={i} onClick={() => setText(ex)}
-                    className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-gray-500 hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
-                    {ex.split(" ").slice(0, 4).join(" ")}…
-                  </button>
-                ))}
-              </div>
-              <button onClick={compile} disabled={compiling || !text.trim()}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-white py-2.5 text-xs font-bold text-black hover:bg-gray-200 disabled:opacity-40 transition-colors">
-                {compiling ? <><Loader2 className="size-4 animate-spin" /> COMPILING…</> : <><Cpu className="size-4" /> COMPILE WITH ACE</>}
-              </button>
-
-              {spec && <SpecCard spec={spec} />}
-            </div>
-          </Panel>
-
-          {/* Backtest */}
-          <Panel icon={<Activity className="size-3" />} title="PROVABLY-FAIR BACKTEST">
-            <div className="p-5">
-              <div className="flex items-center justify-between gap-3">
-                <p className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                  <ShieldCheck className="size-3 text-emerald-500" />
-                  Replayed on real TxLINE data · Merkle-verifiable via <span className="text-emerald-400">validate_stat</span>
-                </p>
-                <button onClick={runBacktest} disabled={!spec || testing}
-                  className="flex items-center gap-2 rounded bg-emerald-500/15 border border-emerald-500/40 px-3 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/25 disabled:opacity-30 transition-colors">
-                  {testing ? <><Loader2 className="size-3.5 animate-spin" /> RUNNING</> : <><Play className="size-3.5" /> RUN BACKTEST</>}
-                </button>
-              </div>
-
-              {!backtest && !testing && (
-                <div className="mt-6 flex h-40 items-center justify-center rounded-lg border border-dashed border-white/10 text-xs text-gray-600">
-                  {spec ? "Run the backtest to see the equity curve." : "Compile a strategy first."}
-                </div>
-              )}
-
-              {backtest && <BacktestView bt={backtest} />}
-            </div>
-          </Panel>
-
-          {/* Deploy live + on-chain ledger */}
-          <Panel icon={<Radio className="size-3" />} title="ON-CHAIN AGENT LEDGER" grow>
-            <div className="p-5">
-              <div className="flex items-center justify-between gap-3">
-                <p className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                  <ShieldCheck className="size-3 text-emerald-500" />
-                  Every call ORA makes is inscribed on <span className="text-emerald-400">Solana</span> — public, timestamped, tamper-proof.
-                </p>
-                <button onClick={deploy} disabled={!spec || deploying}
-                  className="flex shrink-0 items-center gap-2 rounded bg-emerald-500 px-3 py-1.5 text-xs font-bold text-black hover:bg-emerald-400 disabled:opacity-30 transition-colors">
-                  {deploying ? <><Loader2 className="size-3.5 animate-spin" /> DEPLOYING</> : <><Send className="size-3.5" /> DEPLOY AGENT LIVE</>}
-                </button>
-              </div>
-
-              {metrics && <WalletDashboard metrics={metrics} record={record} />}
-
-              {ledger.length === 0 ? (
-                <div className="mt-4 flex h-32 items-center justify-center rounded-lg border border-dashed border-white/10 px-4 text-center text-xs text-gray-600">
-                  {spec ? "Deploy your agent to make its first verifiable on-chain call." : "Compile a strategy, then deploy it live."}
-                </div>
-              ) : (
-                <div className="mt-4 space-y-2">
-                  {ledger.map((c) => <LedgerCard key={c.signature} c={c} />)}
-                </div>
-              )}
-            </div>
-          </Panel>
         </section>
 
-        {/* Right: live markets + terminal */}
-        <section className="flex min-h-0 w-1/3 flex-col bg-black">
-          <Panel icon={<TrendingUp className="size-3" />} title="TRADEABLE MARKETS · LIVE + UPCOMING">
-            <div className="max-h-60 overflow-y-auto p-3 space-y-1.5">
-              {markets.length === 0 && !marketsError && <p className="p-3 text-[11px] text-gray-600">Loading fixtures…</p>}
-              {marketsError && markets.length === 0 && (
-                <p className="p-3 text-[11px] text-yellow-500/80">Markets unavailable — TxLINE token may need refreshing.</p>
-              )}
-              {!marketsError && markets.length === 0 && fxData && (
-                <p className="p-3 text-[11px] text-gray-600">No live or upcoming games in range.</p>
-              )}
-              {markets.length > 0 && (
-                <p className="px-1 pb-1 text-[9px] text-gray-600">Tap a match to open its live chart & trade →</p>
-              )}
-              {markets.map((m) => (
-                <Link key={m.FixtureId} href={`/market/${m.FixtureId}`}
-                  className="flex w-full items-center justify-between gap-2 rounded border border-white/5 bg-[#0d0d0d] px-3 py-2 text-xs transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5">
-                  <span className="truncate text-left text-gray-300">{m.Participant1} <span className="text-gray-600">v</span> {m.Participant2}</span>
-                  {m.phase === "live"
-                    ? <span className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-400"><span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />LIVE</span>
-                    : <span className="shrink-0 text-[10px] text-gray-500">{kickoff(m.StartTime)}</span>}
-                </Link>
-              ))}
+        {/* Meet ORA — advert (no betting on the landing) */}
+        <section id="ora" className="border-b border-white/10">
+          <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
+            <div className="grid items-center gap-10 lg:grid-cols-2">
+              <div>
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 px-3 py-1 text-[10px] uppercase tracking-wider text-emerald-400">
+                  <Brain className="size-3.5" /> Meet ORA
+                </div>
+                <h2 className="font-sans text-3xl font-bold leading-tight text-white sm:text-4xl">
+                  An AI trader with a <span className="text-emerald-400">glass skull</span>.
+                </h2>
+                <p className="mt-4 max-w-xl font-sans text-sm leading-relaxed text-gray-400 sm:text-base">
+                  ORA reads every World Cup market and names its pick · the outcome its model rates highest,
+                  with the exact payout you&apos;d earn. Every quote, call and settlement is inscribed on Solana,
+                  so its win-rate and P&amp;L are provable by anyone. No black box. No admin. Flip on
+                  <span className="text-emerald-300"> AI predictions</span> in the markets and ORA prices the whole board for you.
+                </p>
+                <div className="mt-7 grid max-w-lg grid-cols-3 gap-3">
+                  {[
+                    ["Reads the board", "Fair value from live TxLINE odds"],
+                    ["Calls its pick", "Best outcome + your exact payout"],
+                    ["Proves it", "Every call on-chain, settled by proof"],
+                  ].map(([t, d]) => (
+                    <div key={t} className="rounded-lg border border-white/10 bg-[#0a0a0a] p-3">
+                      <p className="text-[11px] font-bold text-white">{t}</p>
+                      <p className="mt-1 text-[10px] leading-snug text-gray-500">{d}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link href="/markets" className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-black hover:opacity-90">
+                    See ORA price the markets →
+                  </Link>
+                  <Link href="/ora" className="rounded-lg border border-white/15 px-5 py-3 text-sm font-bold text-white hover:bg-white/5">
+                    ORA command center
+                  </Link>
+                </div>
+              </div>
+              <div className="flex justify-center lg:justify-end">
+                <OraLiveCard />
+              </div>
             </div>
-          </Panel>
+          </div>
+        </section>
 
-          <div className="flex min-h-0 flex-1 flex-col border-t border-white/10">
-            <div className="flex items-center gap-2 border-b border-white/5 bg-[#0d0d0d] px-4 py-2 text-xs tracking-widest text-gray-400">
-              <SquareTerminal className="size-3" /> AGENT TERMINAL
-            </div>
-            <div ref={termRef}
-              onScroll={(e) => {
-                const el = e.currentTarget;
-                stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-              }}
-              className="min-h-0 flex-1 overflow-y-auto p-4 text-[11px] leading-relaxed">
-              {logs.map((l, i) => (
-                <div key={i} className="mb-2 flex items-start gap-2">
-                  <span className="shrink-0 text-gray-700">[{l.time}]</span>
-                  <span className={cn("break-words",
-                    l.type === "info" && "text-gray-400",
-                    l.type === "warn" && "text-yellow-400",
-                    l.type === "exec" && "text-blue-400",
-                    l.type === "success" && "text-emerald-400",
-                    l.type === "error" && "text-red-400")}>
-                    {(l.type === "exec" || l.type === "success") ? "> " : ""}{l.msg}
-                  </span>
+        {/* How it works */}
+        <section className="border-b border-white/10">
+          <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6">
+            <h2 className="text-[11px] uppercase tracking-[0.2em] text-gray-500">How it works</h2>
+            <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/5 sm:grid-cols-3">
+              {STEPS.map((s) => (
+                <div key={s.n} className="bg-[#0a0a0a] p-6">
+                  <div className="flex items-center gap-2 text-emerald-400">{s.icon}<span className="text-sm font-bold">{s.n}</span></div>
+                  <h3 className="mt-4 font-sans text-lg font-semibold text-white">{s.t}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-400">{s.d}</p>
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2 border-t border-white/10 p-3 text-xs text-gray-600">
-              <ArrowRight className="size-3" /><span className="animate-pulse">_</span>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Link href="/ora" className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-bold text-emerald-400 hover:bg-emerald-500/15">
+                Build your own AI strategy <ArrowRight className="size-4" />
+              </Link>
+              <Link href="/portfolio" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white">
+                My predictions <ArrowRight className="size-4" />
+              </Link>
             </div>
           </div>
         </section>
       </main>
 
-    </div>
-  );
-}
-
-// ── Pieces ─────────────────────────────────────────────────────────────────────
-
-type CallStatus = "won" | "lost" | "pending";
-type LedgerRecord = { won: number; lost: number; pending: number };
-type LedgerMetrics = {
-  startingBankroll: number;
-  bankroll: number;
-  netPnl: number;
-  staked: number;
-  roi: number;
-  hitRate: number;
-  settled: number;
-  equity: { i: number; bankroll: number }[];
-};
-type LedgerCall = {
-  strategy: string;
-  match: string;
-  side: "back" | "lay";
-  selection: "home" | "draw" | "away";
-  odds: number;
-  reasoning: string;
-  status: CallStatus;
-  finalScore: string | null;
-  pnl: number | null;
-  stake: number;
-  timestamp: number;
-  signature: string;
-  explorerUrl: string;
-};
-
-function WalletDashboard({ metrics, record }: { metrics: LedgerMetrics; record?: LedgerRecord }) {
-  const up = metrics.bankroll >= metrics.startingBankroll;
-  return (
-    <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[9px] uppercase tracking-wider text-gray-500">ORA Wallet · bankroll</p>
-          <p className={cn("mt-0.5 font-mono text-2xl font-bold tabular-nums", up ? "text-emerald-400" : "text-red-400")}>
-            {metrics.bankroll.toFixed(2)} <span className="text-xs font-normal text-gray-500">USDC</span>
-          </p>
-          <p className="text-[10px] text-gray-500">
-            {metrics.startingBankroll} start ·{" "}
-            <span className={metrics.netPnl >= 0 ? "text-emerald-400" : "text-red-400"}>
-              {metrics.netPnl >= 0 ? "+" : ""}{metrics.netPnl} P&amp;L
-            </span>
-          </p>
-        </div>
-        <div className="space-y-0.5 text-right font-mono text-[10px] text-gray-500">
-          <p>
-            <span className="font-bold text-emerald-400">{record?.won ?? 0}W</span> ·{" "}
-            <span className="font-bold text-red-400">{record?.lost ?? 0}L</span>
-            {record?.pending ? ` · ${record.pending} open` : ""}
-          </p>
-          <p>hit rate <span className="text-white">{Math.round(metrics.hitRate * 100)}%</span></p>
-          <p>return <span className={metrics.roi >= 0 ? "text-emerald-400" : "text-red-400"}>{metrics.roi >= 0 ? "+" : ""}{(metrics.roi * 100).toFixed(1)}%</span></p>
-        </div>
-      </div>
-      {metrics.equity.length > 1 ? (
-        <div className="mt-3 h-20 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={metrics.equity}>
-              <ReferenceLine y={metrics.startingBankroll} stroke="#333" strokeDasharray="3 3" />
-              <YAxis hide domain={["auto", "auto"]} />
-              <XAxis dataKey="i" hide />
-              <Tooltip contentStyle={{ backgroundColor: "#000", borderColor: "#333", fontSize: 10, fontFamily: "monospace" }}
-                formatter={(v) => [`${v} USDC`, "Balance"]} labelFormatter={() => ""} />
-              <Line type="monotone" dataKey="bankroll" stroke={up ? "#10b981" : "#f43f5e"} strokeWidth={2} dot={false} isAnimationActive />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <p className="mt-2 text-[10px] text-gray-600">Balance updates automatically as ORA&apos;s calls settle against real results.</p>
-      )}
-    </div>
-  );
-}
-
-function StatusChip({ status, score }: { status: CallStatus; score: string | null }) {
-  if (status === "won")
-    return <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">✓ WON{score ? ` ${score}` : ""}</span>;
-  if (status === "lost")
-    return <span className="shrink-0 rounded bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-400">✗ LOST{score ? ` ${score}` : ""}</span>;
-  return <span className="shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-gray-500">◷ PENDING</span>;
-}
-
-function LedgerCard({ c }: { c: LedgerCall }) {
-  const won = c.status === "won";
-  const lost = c.status === "lost";
-  return (
-    <div className={cn("rounded-lg border p-3",
-      won ? "border-emerald-500/30 bg-emerald-500/[0.04]" : lost ? "border-red-500/30 bg-red-500/[0.04]" : "border-white/10 bg-[#0d0d0d]")}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-xs font-bold text-white">{c.match}</span>
-        <StatusChip status={c.status} score={c.finalScore} />
-      </div>
-      <p className="mt-1 text-[11px] font-medium text-emerald-400">
-        {sideVerb(c.side)} {selectionShort(c.selection)} · pays {oddsLabel(c.odds)}
-        {c.pnl != null && (
-          <span className={cn("ml-2 font-bold", c.pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-            {c.pnl >= 0 ? "+" : ""}{c.pnl} USDC
+      <footer className="border-t border-white/10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-8 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span className="flex items-center gap-1.5 font-bold tracking-widest text-white">
+            <ShieldCheck className="size-3.5 text-emerald-500" /> TxAGENT DESK
           </span>
-        )}
-      </p>
-      <p className="mt-1 text-[11px] italic leading-relaxed text-gray-400">“{c.reasoning}”</p>
-      <div className="mt-2 flex items-center justify-between text-[9px]">
-        <span className="flex items-center gap-1 text-gray-500">
-          <ShieldCheck className="size-2.5 text-emerald-500" /> {c.strategy}
-        </span>
-        <a href={c.explorerUrl} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1 font-mono text-gray-500 transition-colors hover:text-emerald-400">
-          Solana {c.signature.slice(0, 6)}… <ExternalLink className="size-2.5" />
-        </a>
-      </div>
-    </div>
-  );
-}
-
-function Panel({ icon, title, grow, children }: { icon: React.ReactNode; title: string; grow?: boolean; children: React.ReactNode }) {
-  return (
-    <div className={cn("flex flex-col", grow && "flex-1")}>
-      <div className="flex items-center gap-2 border-b border-white/5 bg-[#0d0d0d] px-4 py-2 text-xs tracking-widest text-gray-400">
-        {icon} {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function SpecCard({ spec }: { spec: StrategySpec }) {
-  return (
-    <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-bold text-white">{spec.name}</span>
-        <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-400">Compiled</span>
-      </div>
-      <div className="space-y-2">
-        <RuleRow k="WHEN" accent v={conditionText(spec)} />
-        <RuleRow k="THEN" v={`${actionText(spec)} — ${spec.stake} USDC per bet`} />
-      </div>
-      <p className="mt-3 text-[10px] text-gray-500">
-        Market: <span className="text-gray-300">Match winner (full-time result)</span>
-      </p>
-      <p className="mt-1 text-[11px] italic leading-relaxed text-gray-400">“{spec.summary}”</p>
-    </div>
-  );
-}
-
-function RuleRow({ k, v, accent }: { k: string; v: string; accent?: boolean }) {
-  return (
-    <div className="flex items-start gap-3 rounded border border-white/5 bg-black px-3 py-2">
-      <span className={cn("shrink-0 pt-0.5 text-[10px] font-bold tracking-wider", accent ? "text-emerald-500" : "text-blue-400")}>{k}</span>
-      <span className="text-xs leading-relaxed text-white">{v}</span>
-    </div>
-  );
-}
-
-function BacktestView({ bt }: { bt: BacktestSummary & { matchesScanned: number } }) {
-  const pos = bt.pnl >= 0;
-  const color = pos ? "#10b981" : "#f43f5e";
-  return (
-    <div className="mt-4">
-      <div className="grid grid-cols-4 gap-2">
-        <Stat label="WIN RATE" value={`${(bt.winRate * 100).toFixed(0)}%`} sub={`${bt.wins} of ${bt.count} won`} />
-        <Stat label="NET PROFIT" value={`${pos ? "+" : ""}${bt.pnl}`} sub="USDC" accent={pos ? "up" : "down"} />
-        <Stat label="RETURN" value={`${(bt.roi * 100).toFixed(1)}%`} sub="per bet staked" accent={bt.roi >= 0 ? "up" : "down"} />
-        <Stat label="BETS PLACED" value={`${bt.count}`} sub={`of ${bt.matchesScanned} matches`} />
-      </div>
-
-      {/* Equity curve */}
-      <div className="mt-4 h-40 w-full rounded-lg border border-white/10 bg-black p-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={bt.equity}>
-            <ReferenceLine y={0} stroke="#333" strokeDasharray="3 3" />
-            <XAxis dataKey="i" hide />
-            <YAxis hide domain={["auto", "auto"]} />
-            <Tooltip contentStyle={{ backgroundColor: "#000", borderColor: "#333", fontSize: 11, fontFamily: "monospace" }}
-              labelFormatter={(l) => `after bet ${l}`} formatter={(v) => [`${v} USDC`, "Running profit"]} />
-            <Line type="monotone" dataKey="pnl" stroke={color} strokeWidth={2} dot={false} isAnimationActive />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Trades */}
-      <div className="mt-3 max-h-44 overflow-y-auto rounded-lg border border-white/10">
-        <table className="w-full text-[11px]">
-          <thead className="sticky top-0 bg-[#0d0d0d] text-gray-500">
-            <tr><th className="p-2 text-left font-normal">MATCH</th><th className="p-2 text-left font-normal">BET</th><th className="p-2 text-right font-normal">PROFIT</th></tr>
-          </thead>
-          <tbody>
-            {bt.trades.map((t) => (
-              <tr key={t.fixtureId} className="border-t border-white/5">
-                <td className="max-w-[180px] truncate p-2 text-gray-300">{t.match}</td>
-                <td className="p-2 text-gray-500">{sideVerb(t.side)} {selectionShort(t.selection)} · pays {oddsLabel(t.entryDec)}</td>
-                <td className={cn("p-2 text-right font-bold tabular-nums", t.pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  {t.pnl > 0 ? "+" : ""}{t.pnl}
-                </td>
-              </tr>
-            ))}
-            {bt.trades.length === 0 && (
-              <tr><td colSpan={3} className="p-4 text-center text-gray-600">No matches matched your rule in range.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: "up" | "down" }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-black p-3">
-      <p className="text-[9px] uppercase tracking-wider text-gray-600">{label}</p>
-      <p className={cn("mt-1 text-lg font-bold tabular-nums flex items-center gap-1",
-        accent === "up" ? "text-emerald-400" : accent === "down" ? "text-red-400" : "text-white")}>
-        {accent === "up" && <TrendingUp className="size-3.5" />}
-        {accent === "down" && <TrendingDown className="size-3.5" />}
-        {value}
-      </p>
-      {sub && <p className="text-[9px] text-gray-600">{sub}</p>}
+          <p>No oracle. No admin. Settled by proof.</p>
+          <p>World Cup 2026 Hackathon · Powered by TxLINE</p>
+        </div>
+      </footer>
     </div>
   );
 }

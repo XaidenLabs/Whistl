@@ -34,7 +34,7 @@ function parseMemo(raw: string): ParsedMemo | null {
     market = mkt.slice(1).join(" || MKT: ");
   }
 
-  const dash = rest.indexOf(" — ");
+  const dash = rest.indexOf(" · ");
   const headline = (dash >= 0 ? rest.slice(0, dash) : rest).trim();
   const analysis = dash >= 0 ? rest.slice(dash + 3).trim() : "";
 

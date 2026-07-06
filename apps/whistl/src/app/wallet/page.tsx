@@ -46,7 +46,7 @@ function BalanceCard({ usdc, sol, loading, refresh, walletAddress }: {
             <p className="font-mono text-[10px] uppercase tracking-widest text-text-dim mb-1">Available balance</p>
             <div className="flex items-baseline gap-2">
               <span className="font-mono text-4xl font-bold tabular-nums text-signal">
-                {usdc != null ? fmtUsdc(usdc) : "—"}
+                {usdc != null ? fmtUsdc(usdc) : "·"}
               </span>
               <span className="font-mono text-base text-text-dim">USDC</span>
             </div>
@@ -117,7 +117,7 @@ function TopUpPanel({ onDone }: { onDone: () => void }) {
       <div>
         <p className="font-semibold text-text">Top up test-USDC</p>
         <p className="mt-1 text-sm text-text-dim">
-          Get 500 test-USDC on Solana devnet — free, instantly minted to your wallet.
+          Get 500 test-USDC on Solana devnet · free, instantly minted to your wallet.
           Use it to place bets on World Cup matches.
         </p>
       </div>
@@ -205,7 +205,7 @@ function WithdrawPanel({ available, fromAddress, onDone }: {
       <div>
         <p className="font-semibold text-text">Withdraw USDC</p>
         <p className="mt-1 text-sm text-text-dim">
-          Send test-USDC to any Solana wallet. Winnings are already in your wallet —
+          Send test-USDC to any Solana wallet. Winnings are already in your wallet ·
           this moves them to another address you control.
         </p>
       </div>
@@ -425,7 +425,7 @@ export default function WalletPage() {
         <div className="rounded-xl border border-signal/20 bg-signal/5 px-5 py-4">
           <p className="text-sm font-medium text-signal mb-1">How winnings work</p>
           <p className="text-sm leading-relaxed text-text-dim">
-            When you win a bet, the USDC lands directly in this wallet —
+            When you win a bet, the USDC lands directly in this wallet ·
             instantly, on-chain, no withdrawal needed. The balance above updates
             automatically within 15 seconds of settlement.
           </p>
@@ -486,7 +486,7 @@ export default function WalletPage() {
             rel="noreferrer"
             className="text-proof hover:underline"
           >
-            {short(process.env.NEXT_PUBLIC_WHISTL_PROGRAM_ID ?? "—")}
+            {short(process.env.NEXT_PUBLIC_WHISTL_PROGRAM_ID ?? "·")}
           </a>
         </p>
       </div>

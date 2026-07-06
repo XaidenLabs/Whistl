@@ -195,7 +195,7 @@ export async function POST(req: Request) {
         isTrue,
         finalValue,
         paidOut: isTrue ? (row?.stake_usdc ?? 0) : 0,
-        note: "Pact not on-chain — result verified via TxLINE Merkle proof.",
+        note: "Pact not on-chain · result verified via TxLINE Merkle proof.",
       });
     }
 

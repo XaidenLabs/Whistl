@@ -64,6 +64,46 @@ const DEMO_FIXTURES = [
   },
 ];
 
+// Build a replay target from a REAL TxLINE fixture. The stat terms are wager templates
+// (goal diff / total goals / corner diff); only the fixture + team names are live data.
+type LiveFixture = { FixtureId: number; Participant1: string; Participant2: string; StartTime: number };
+function buildDemo(f: LiveFixture): typeof DEMO_FIXTURES[0] {
+  const fixtureId = f.FixtureId;
+  const p1 = f.Participant1;
+  const p2 = f.Participant2;
+  return {
+    fixtureId,
+    p1,
+    p2,
+    pacts: [
+      {
+        pactId: `${fixtureId}-gd`,
+        fixtureId,
+        statement: `${p2} goals − ${p1} goals > 0`,
+        terms: { statAKey: 2, statBKey: 1, hasStatB: true, op: 1, comparison: 0, threshold: 0, statAPeriod: 0, statBPeriod: 0 },
+        stakeUsdc: 10,
+        baselinePTrue: 0.5,
+      },
+      {
+        pactId: `${fixtureId}-tg`,
+        fixtureId,
+        statement: `Total goals > 2`,
+        terms: { statAKey: 1, statBKey: 2, hasStatB: true, op: 0, comparison: 0, threshold: 2, statAPeriod: 0, statBPeriod: 0 },
+        stakeUsdc: 10,
+        baselinePTrue: 0.48,
+      },
+      {
+        pactId: `${fixtureId}-cd`,
+        fixtureId,
+        statement: `${p1} corners − ${p2} corners > 1`,
+        terms: { statAKey: 7, statBKey: 8, hasStatB: true, op: 1, comparison: 0, threshold: 1, statAPeriod: 0, statBPeriod: 0 },
+        stakeUsdc: 10,
+        baselinePTrue: 0.4,
+      },
+    ] as PactRecord[],
+  };
+}
+
 // ─── Event colours / icons ────────────────────────────────────────────────────
 
 function eventStyle(kind: KeeperEventKind): { color: string; prefix: string } {
@@ -367,6 +407,25 @@ function OraPageInner() {
 
   const [activeFixtureId, setActiveFixtureId] = useState<number | null>(qFixtureId);
   const [watchers, setWatchers] = useState<WatcherMeta[]>([]);
+  const [demos, setDemos] = useState<typeof DEMO_FIXTURES>([]);
+  const [demosLoading, setDemosLoading] = useState(true);
+
+  // Build replay targets from the most recent REAL finished fixtures (live TxLINE feed).
+  useEffect(() => {
+    fetch("/api/txline/fixtures", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        const fx = (j?.fixtures ?? []) as LiveFixture[];
+        const now = Date.now();
+        const finished = fx
+          .filter((f) => f.StartTime <= now)
+          .sort((a, b) => b.StartTime - a.StartTime)
+          .slice(0, 2);
+        setDemos(finished.length ? finished.map(buildDemo) : DEMO_FIXTURES);
+      })
+      .catch(() => setDemos(DEMO_FIXTURES)) // feed down → fall back to a template
+      .finally(() => setDemosLoading(false));
+  }, []);
 
   // On mount, check for any already-running watchers
   useEffect(() => {
@@ -404,7 +463,7 @@ function OraPageInner() {
         <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#6b7280", margin: "8px 0 0" }}>
           Autonomous match-watcher and settlement engine. ORA watches every event,
           updates its certainty for each open pact, and settles on-chain the moment
-          an outcome is mathematically determined — no human intervention required.
+          an outcome is mathematically determined · no human intervention required.
         </p>
       </div>
 
@@ -430,12 +489,19 @@ function OraPageInner() {
           Demo replays
         </div>
         <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#4b5563", marginBottom: 16, marginTop: 0 }}>
-          Replays a finished match at 6× speed with open pacts. ORA narrates every
-          goal and update, early-settles locked outcomes, and fetches Merkle proofs at FT.
+          Replays a recent real World Cup match (live from TxLINE) at 6× speed with open
+          pacts. ORA narrates every goal and update, early-settles locked outcomes, and
+          fetches Merkle proofs at FT.
         </p>
-        {DEMO_FIXTURES.map((demo) => (
-          <DemoLauncher key={demo.fixtureId} demo={demo} onStart={handleStart} />
-        ))}
+        {demosLoading ? (
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#4b5563" }}>
+            Loading recent matches from TxLINE…
+          </p>
+        ) : (
+          demos.map((demo) => (
+            <DemoLauncher key={demo.fixtureId} demo={demo} onStart={handleStart} />
+          ))
+        )}
       </section>
 
       {/* How it works */}

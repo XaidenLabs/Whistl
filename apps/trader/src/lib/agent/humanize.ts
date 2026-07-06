@@ -29,15 +29,15 @@ export function conditionText(spec: StrategySpec): string {
     case "always":
       return "any match kicks off";
     case "prob_below":
-      return `${who} is an underdog — under ${t.value}% chance to win`;
+      return `${who} is an underdog · under ${t.value}% chance to win`;
     case "prob_above":
-      return `${who} is the favourite — over ${t.value}% chance to win`;
+      return `${who} is the favourite · over ${t.value}% chance to win`;
     case "odds_drop":
-      return `${who}'s chance jumps ${t.value}%+ within ${t.windowMin} min — money is flowing in`;
+      return `${who}'s chance jumps ${t.value}%+ within ${t.windowMin} min · money is flowing in`;
     case "odds_rise":
-      return `${who}'s chance slides ${t.value}%+ within ${t.windowMin} min — the market is cooling off`;
+      return `${who}'s chance slides ${t.value}%+ within ${t.windowMin} min · the market is cooling off`;
     default:
-      return "—";
+      return "·";
   }
 }
 

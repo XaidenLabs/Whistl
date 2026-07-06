@@ -25,3 +25,5 @@ scratch_fund.js
 
 # Vendored Rust deps (regenerable via cargo vendor)
 whistl/vendor/
+.vercel
+.env*
