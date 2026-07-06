@@ -37,7 +37,7 @@ export default function AlertsPage() {
         <h1 className="text-lg font-semibold text-text">Sharp Money</h1>
       </div>
       <p className="mb-5 text-sm text-text-dim">
-        When the smart money moves a line, you see it first — and why it matters.
+        When the smart money moves a line, you see it first · and why it matters.
         {data ? (
           <span className="ml-1 font-mono text-[11px] text-text-dim/80">
             Watching {data.watching} markets.
@@ -56,7 +56,7 @@ export default function AlertsPage() {
       {error && (
         <p className="rounded-xl border border-live/30 bg-live/5 p-4 text-sm text-live">
           {error.code === "TXLINE_TOKEN_MISSING"
-            ? "Live odds warming up — check back shortly."
+            ? "Live odds warming up · check back shortly."
             : `Couldn't load alerts: ${error.message}`}
         </p>
       )}
@@ -76,7 +76,7 @@ export default function AlertsPage() {
           <Activity className="mx-auto mb-2 size-6 text-text-dim" aria-hidden />
           <p className="text-sm font-medium text-text">Markets are quiet right now</p>
           <p className="mt-1 text-xs text-text-dim">
-            No sharp moves across the board. Alerts fire when a line swings hard — usually near
+            No sharp moves across the board. Alerts fire when a line swings hard · usually near
             kickoff or after a goal.
           </p>
         </div>

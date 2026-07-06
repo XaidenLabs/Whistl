@@ -160,15 +160,15 @@ export function priceQuote(terms: PactTerms, marketCtx: MarketContext = {}): Ora
     const pct = (prob * 100).toFixed(1);
     const stance =
       prob < 0.45
-        ? `ORA takes the other side — TxLINE sharp-book consensus gives you only ${pct}%.`
+        ? `ORA takes the other side · TxLINE sharp-book consensus gives you only ${pct}%.`
         : prob > 0.55
-          ? `ORA is cautious — TxLINE gives you ${pct}%, so expect this to happen most of the time.`
-          : `Near-coin-flip — TxLINE consensus at ${pct}%.`;
+          ? `ORA is cautious · TxLINE gives you ${pct}%, so expect this to happen most of the time.`
+          : `Near-coin-flip · TxLINE consensus at ${pct}%.`;
     return {
       probabilityTrue: prob,
       source: "market",
       confidence: "high",
-      reasoning: `TxLINE demargined probability: ${pct}%. Priced from sharp-book consensus anchored on Solana — this is the same data that settles the pact on-chain.`,
+      reasoning: `TxLINE demargined probability: ${pct}%. Priced from sharp-book consensus anchored on Solana · this is the same data that settles the pact on-chain.`,
       stance,
     };
   }
@@ -196,16 +196,16 @@ export function priceQuote(terms: PactTerms, marketCtx: MarketContext = {}): Ora
   const pct = (prob * 100).toFixed(1);
   const stance =
     prob < 0.45
-      ? `ORA will take the other side — model gives you only ${pct}%.`
+      ? `ORA will take the other side · model gives you only ${pct}%.`
       : prob > 0.55
-        ? `ORA is wary here — model gives you ${pct}%, so it prices the counter accordingly.`
-        : `Close call — ORA reads it as near-coin-flip at ${pct}%.`;
+        ? `ORA is wary here · model gives you ${pct}%, so it prices the counter accordingly.`
+        : `Close call · ORA reads it as near-coin-flip at ${pct}%.`;
 
   return {
     probabilityTrue: prob,
     source: "model",
     confidence: "medium",
-    reasoning: `Poisson base-rate model (${lamNote}) → P(resolves TRUE) ~ ${pct}%. No TxLINE live market for this stat — ORA modeled it from World Cup base rates.`,
+    reasoning: `Poisson base-rate model (${lamNote}) → P(resolves TRUE) ~ ${pct}%. No TxLINE live market for this stat · ORA modeled it from World Cup base rates.`,
     stance,
   };
 }

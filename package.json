@@ -1,6 +1,7 @@
 {
   "name": "whistl-workspace",
   "private": true,
+  "packageManager": "npm@11.16.0",
   "workspaces": [
     "apps/*",
     "packages/*",
@@ -9,7 +10,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
+    "build": "turbo run build --filter=./apps/*",
     "lint": "turbo run lint"
   },
   "devDependencies": {

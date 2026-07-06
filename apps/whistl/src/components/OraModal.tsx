@@ -67,7 +67,7 @@ export default function OraModal({ fixtureId, p1, p2, onClose }: OraModalProps) 
         if (!j.ok && j.error) {
           setErrMsg(
             j.error === "NO_SCORE_DATA"
-              ? "No score data available — check back once the match kicks off."
+              ? "No score data available · check back once the match kicks off."
               : j.error,
           );
           setPhase("error");
@@ -126,7 +126,7 @@ export default function OraModal({ fixtureId, p1, p2, onClose }: OraModalProps) 
             <span className="size-2.5 rounded-full bg-green-500/80" />
           </div>
           <span className="text-[11px] text-green-700 tracking-[0.2em] uppercase">
-            ORA SENTINEL — {p1} vs {p2}
+            ORA SENTINEL · {p1} vs {p2}
           </span>
           <button
             type="button"
@@ -141,7 +141,7 @@ export default function OraModal({ fixtureId, p1, p2, onClose }: OraModalProps) 
         <div className="flex items-center justify-between px-4 py-1.5 bg-[#050f05] border-b border-green-900/30 shrink-0 text-[11px]">
           <span className="text-green-600">
             {score
-              ? `${p1}  ${score.p1} — ${score.p2}  ${p2}    ${score.minutes}'`
+              ? `${p1}  ${score.p1} · ${score.p2}  ${p2}    ${score.minutes}'`
               : `${p1} vs ${p2}`}
           </span>
           <span className={`tracking-widest ${statusCls} ${isLive ? "animate-pulse" : ""}`}>
@@ -162,7 +162,7 @@ export default function OraModal({ fixtureId, p1, p2, onClose }: OraModalProps) 
           )}
           {phase === "error" && (
             <div className="text-red-500 text-xs mt-2">
-              ! ERROR — {errMsg}
+              ! ERROR · {errMsg}
             </div>
           )}
           {phase === "running" && events.length === 0 && (

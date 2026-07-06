@@ -42,8 +42,8 @@ export default function PulseHome() {
           Your AI football companion
         </h1>
         <p className="mt-1 text-sm text-text-dim">
-          Live commentary, sharp-money alerts, and one-tap games for every World Cup match —
-          powered by real TxLINE data.
+          Live commentary, instant alerts, and one-tap games for every World Cup match ·
+          powered by real-time match data.
         </p>
       </section>
 
@@ -70,7 +70,7 @@ export default function PulseHome() {
       {error && (
         <p className="rounded-xl border border-live/30 bg-live/5 p-4 text-sm text-live">
           {error.code === "TXLINE_TOKEN_MISSING"
-            ? "Live data is warming up — check back shortly."
+            ? "Live data is warming up · check back shortly."
             : `Couldn't load matches: ${error.message}`}
         </p>
       )}

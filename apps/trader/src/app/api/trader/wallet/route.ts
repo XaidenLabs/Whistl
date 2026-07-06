@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 import { verifyPrivyToken, privyConfigured } from "@/lib/auth/privy-server";
-import { getUserBets, balanceOf, markSettled, STARTING_BALANCE, type Selection } from "@/lib/trader/betstore";
+import { getUserBets, balanceOf, markSettled, evaluateBet, STARTING_BALANCE } from "@/lib/trader/betstore";
 import { getScoresSnapshot } from "@/lib/txline/server";
 import { parseCurrentScore, type TxScoreEvent } from "@/lib/txline/types";
 
 // GET /api/trader/wallet — the signed-in user's paper wallet: balance + positions. Open bets on
 // finished matches are settled against the real TxLINE result and paid out on read.
-
-function resultOf(p1: number, p2: number): Selection {
-  if (p1 > p2) return "home";
-  if (p2 > p1) return "away";
-  return "draw";
-}
 
 async function authDid(req: Request): Promise<string | null> {
   const authz = req.headers.get("authorization") || "";
@@ -42,7 +36,7 @@ export async function GET(req: Request) {
             const ps = parseCurrentScore((await getScoresSnapshot(b.fixture_id)) as TxScoreEvent[]);
             settleScores.set(b.fixture_id, ps);
             if (ps?.isFinished) {
-              const won = resultOf(ps.p1Goals, ps.p2Goals) === b.selection; // users only back
+              const won = evaluateBet(b, ps.p1Goals, ps.p2Goals) === "won";
               const pnl = Math.round((won ? b.stake * (b.odds - 1) : -b.stake) * 100) / 100;
               await markSettled(b.id, won ? "won" : "lost", pnl);
               b.status = won ? "won" : "lost";

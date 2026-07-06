@@ -214,7 +214,7 @@ function ScoreBanner({ fixture, scores }: { fixture: TxFixture; scores: TxScoreE
           ) : (
             <span className="font-mono text-xs text-text-dim">HT</span>
           )}
-          <p className="font-mono text-xs text-text-dim">—</p>
+          <p className="font-mono text-xs text-text-dim">·</p>
         </div>
         <div className="text-center">
           <p className="font-mono text-[9px] uppercase tracking-wider text-text-dim">
@@ -225,7 +225,7 @@ function ScoreBanner({ fixture, scores }: { fixture: TxFixture; scores: TxScoreE
       </div>
       <div className="hidden text-right sm:block">
         <p className="font-mono text-[9px] uppercase tracking-wider text-text-dim">Corners</p>
-        <p className="font-mono text-sm tabular-nums text-text">{p1Corners} — {p2Corners}</p>
+        <p className="font-mono text-sm tabular-nums text-text">{p1Corners} · {p2Corners}</p>
       </div>
     </div>
   );
@@ -539,15 +539,15 @@ function BetCreator() {
           <h2 className="text-lg font-semibold text-text">Match finished</h2>
           {parsed && (
             <p className="mt-2 font-mono text-3xl font-bold tabular-nums">
-              {parsed.p1Goals} — {parsed.p2Goals}
+              {parsed.p1Goals} · {parsed.p2Goals}
             </p>
           )}
           <p className="mt-3 text-sm text-text-dim">
-            This match has ended — nothing left to predict. Browse upcoming matches instead.
+            This match has ended · nothing left to predict. Browse upcoming matches instead.
           </p>
           {parsed && (
             <p className="mt-3 font-mono text-[10px] text-signal">
-              ◉ Proof exists on-chain — open bets on this match auto-settle now
+              ◉ Proof exists on-chain · open bets on this match auto-settle now
             </p>
           )}
           <Link
@@ -586,7 +586,7 @@ function BetCreator() {
 
           {/* Step 1 — pick */}
           <div>
-            <p className="mb-1 font-mono text-[9px] uppercase tracking-widest text-text-dim">Step 1 — Choose your bet</p>
+            <p className="mb-1 font-mono text-[9px] uppercase tracking-widest text-text-dim">Step 1 · Choose your bet</p>
             <div className="space-y-5">
               {groups.map(({ key, icon, title, sub }) => {
                 const group = options.filter((o) => o.group === key);
@@ -613,7 +613,7 @@ function BetCreator() {
 
           {/* Step 2 — stake */}
           <div>
-            <p className="mb-2 font-mono text-[9px] uppercase tracking-widest text-text-dim">Step 2 — How much?</p>
+            <p className="mb-2 font-mono text-[9px] uppercase tracking-widest text-text-dim">Step 2 · How much?</p>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -719,7 +719,7 @@ function BetCreator() {
             <p className="font-mono text-[9px] uppercase tracking-widest text-text-dim">How this works</p>
             <p>
               <span className="text-text">1. Your USDC locks in a Solana smart contract.</span>{" "}
-              Nobody can touch it — not even us.
+              Nobody can touch it · not even us.
             </p>
             <p>
               <span className="text-text">2. ORA instantly takes the other side</span>{" "}
@@ -727,7 +727,7 @@ function BetCreator() {
             </p>
             <p>
               <span className="text-text">3. When the match ends, a cryptographic proof from TxLINE settles it.</span>{" "}
-              No admin, no dispute — math decides.
+              No admin, no dispute · math decides.
             </p>
           </div>
         </div>

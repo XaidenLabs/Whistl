@@ -24,7 +24,7 @@ export async function GET() {
     const live = fixtures.filter((f) => matchPhase(f.StartTime, now) === "live");
     const upcoming = fixtures
       .filter((f) => matchPhase(f.StartTime, now) === "upcoming")
-      .sort((a, b) => a.StartTime - b.StartTime); // soonest kickoffs first — most active money
+      .sort((a, b) => a.StartTime - b.StartTime); // soonest kickoffs first · most active money
 
     // Live markets first (real-time moves), then the soonest upcoming, capped for latency.
     const scan = [...live, ...upcoming].slice(0, MAX_SCAN);

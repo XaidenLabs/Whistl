@@ -9,9 +9,9 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "WHISTL — World Cup prop bets, settled by proof",
+  title: "WHISTL · World Cup prop bets, settled by proof",
   description:
-    "Bet on a World Cup stat. Funds lock in a Solana escrow. When the match ends, a TxLINE Merkle proof settles it automatically — no admin, no oracle.",
+    "Bet on a World Cup stat. Funds lock in a Solana escrow. When the match ends, a TxLINE Merkle proof settles it automatically · no admin, no oracle.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     apple: "/icon-192.svg",
   },
   openGraph: {
-    title: "WHISTL — Trustless World Cup Bets",
+    title: "WHISTL · Trustless World Cup Bets",
     description: "Pick a stat. Stake USDC. The proof settles it.",
     type: "website",
   },

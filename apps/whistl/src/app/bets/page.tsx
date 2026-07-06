@@ -23,7 +23,7 @@ const OP_WORD: Record<number, string> = { 0: "combined", 1: "margin" };
 const PERIOD_LABEL: Record<number, string> = { 0: "Full match", 1: "1st half", 2: "2nd half" };
 
 function describeTerms(terms: PactRow["terms"]): string {
-  if (!terms) return "—";
+  if (!terms) return "·";
   const { statAKey, statBKey, hasStatB } = terms;
   const a = STAT_NAME[statAKey] ?? `stat ${statAKey}`;
   if (!hasStatB || !statBKey) return a;
@@ -104,51 +104,147 @@ function StatusBadge({ ds }: { ds: DisplayStatus }) {
   );
 }
 
-// ─── Proof receipt ─────────────────────────────────────────────────────────────
+// ─── Proof receipt (human-readable verdict card) ──────────────────────────────
+
+function buildVerdict(pact: PactRow): { sentence: string; statLabel: string; actualValue: string; threshold: string; comparison: string; progressPct: number } | null {
+  const t = pact.terms;
+  if (!t || pact.predicate_result == null) return null;
+  const [p1, p2] = splitMatchLabel(pact.match_label);
+
+  const STAT: Record<number, string> = {
+    1: "goals", 2: "goals", 3: "yellow cards", 4: "yellow cards",
+    5: "red cards", 6: "red cards", 7: "corners", 8: "corners",
+  };
+  const teamOf = (k: number) => (k % 2 === 1 ? p1 : p2);
+  const noun = STAT[t.statAKey] ?? "stat";
+  const cmpSym = t.comparison === 0 ? ">" : t.comparison === 1 ? "<" : "=";
+  const threshold = t.threshold ?? 0;
+  const fv = pact.final_value;
+
+  // Build the human-readable stat label
+  let statLabel = "";
+  let actualValue = fv != null ? String(fv) : "–";
+  if (t.hasStatB && t.statBKey != null) {
+    if (t.op === 1) {
+      statLabel = `${teamOf(t.statAKey)} ${noun} − ${teamOf(t.statBKey)} ${noun}`;
+    } else {
+      statLabel = `${teamOf(t.statAKey)} ${noun} + ${teamOf(t.statBKey)} ${noun}`;
+    }
+  } else {
+    statLabel = `${teamOf(t.statAKey)} ${noun}`;
+  }
+
+  // Progress bar: how close to threshold (0–100%, can exceed 100%)
+  let progressPct = 0;
+  if (fv != null && threshold > 0) {
+    progressPct = Math.min(Math.round((fv / threshold) * 100), 100);
+  } else if (fv != null && threshold === 0 && fv > 0) {
+    progressPct = 100;
+  }
+
+  // Build the verdict sentence
+  const result = pact.predicate_result;
+  const verdictOutcome = result ? "TRUE ✓" : "FALSE ✗";
+  const sentence = fv != null
+    ? `The final value was ${fv}. The condition "${statLabel} ${cmpSym} ${threshold}" is ${verdictOutcome}.`
+    : `Predicate evaluated to ${verdictOutcome}.`;
+
+  return { sentence, statLabel, actualValue, threshold: String(threshold), comparison: cmpSym, progressPct };
+}
 
 function ProofReceipt({ pact, userDid }: { pact: PactRow; userDid: string }) {
   const ds = displayStatus(pact, userDid);
   const isWin = ds === "won";
+  const isLoss = ds === "lost";
   const txSig = pact.settle_tx_sig;
   const hasTx = Boolean(txSig);
+  const verdict = buildVerdict(pact);
 
   return (
-    <div className={`mt-3 rounded-lg border px-3 py-2.5 font-mono text-[10px] ${
-      isWin ? "border-win/30 bg-win/5" : "border-line bg-ink"
+    <div className={`mt-3 overflow-hidden rounded-lg border font-mono text-[10px] ${
+      isWin ? "border-win/30 bg-win/5" : isLoss ? "border-lose/30 bg-lose/5" : "border-line bg-ink"
     }`}>
-      <div className="flex items-center justify-between gap-2 mb-1.5">
-        <span className="flex items-center gap-1.5 text-text-dim">
-          <ShieldCheck className="size-3 text-proof" aria-hidden />
-          settled by <span className="text-proof">validate_stat</span> proof
-        </span>
-        {pact.predicate_result != null && (
-          <span className={pact.predicate_result ? "text-win" : "text-lose"}>
-            predicate = {pact.predicate_result ? "TRUE ✓" : "FALSE ✗"}
+      {/* Win/Loss banner */}
+      {(isWin || isLoss) && (
+        <div className={`flex items-center gap-2 px-3 py-2 text-[11px] font-bold tracking-wider ${
+          isWin ? "bg-win/15 text-win" : "bg-lose/15 text-lose"
+        }`}>
+          {isWin ? <Trophy className="size-3.5" aria-hidden /> : <TrendingDown className="size-3.5" aria-hidden />}
+          {isWin ? "YOU WON THIS PACT" : "YOU LOST THIS PACT"}
+        </div>
+      )}
+
+      <div className="px-3 py-2.5 space-y-2">
+        {/* Human-readable verdict */}
+        {verdict && (
+          <div className="space-y-2">
+            <p className="text-[11px] leading-relaxed text-text">{verdict.sentence}</p>
+
+            {/* Stat breakdown grid */}
+            <div className="grid grid-cols-3 gap-2 rounded-md border border-line/60 bg-ink p-2">
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-text-dim">Measured</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-text">{verdict.actualValue}</p>
+                <p className="text-[9px] text-text-dim truncate">{verdict.statLabel}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] uppercase tracking-wider text-text-dim">Condition</p>
+                <p className="mt-0.5 text-sm font-bold text-text">{verdict.comparison}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] uppercase tracking-wider text-text-dim">Threshold</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-text">{verdict.threshold}</p>
+              </div>
+            </div>
+
+            {/* Progress bar — how close to threshold */}
+            <div>
+              <div className="flex items-center justify-between text-[9px] text-text-dim mb-1">
+                <span>Progress toward threshold</span>
+                <span className={pact.predicate_result ? "text-win" : "text-lose"}>{verdict.progressPct}%</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-3">
+                <div
+                  className={`h-full rounded-full transition-all ${pact.predicate_result ? "bg-win" : "bg-lose"}`}
+                  style={{ width: `${verdict.progressPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Proof source */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-line/40">
+          <span className="flex items-center gap-1.5 text-text-dim">
+            <ShieldCheck className="size-3 text-proof" aria-hidden />
+            verified by TxLINE <span className="text-proof">validate_stat</span>
           </span>
+          {pact.predicate_result != null && (
+            <span className={`font-bold ${pact.predicate_result ? "text-win" : "text-lose"}`}>
+              {pact.predicate_result ? "TRUE ✓" : "FALSE ✗"}
+            </span>
+          )}
+        </div>
+
+        {/* Transaction link */}
+        {hasTx ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-text-dim">
+              tx: <span className="text-text">{shortSig(txSig!)}</span>
+            </span>
+            <a
+              href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-signal hover:underline"
+            >
+              explorer <ExternalLink className="size-2.5" aria-hidden />
+            </a>
+          </div>
+        ) : (
+          <span className="text-text-dim/60">no oracle, no admin · proof verified on-chain</span>
         )}
       </div>
-      {pact.final_value != null && (
-        <div className="text-text-dim mb-1">
-          final value: <span className="text-text">{pact.final_value}</span>
-        </div>
-      )}
-      {hasTx ? (
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-text-dim">
-            tx: <span className="text-text">{shortSig(txSig!)}</span>
-          </span>
-          <a
-            href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-signal hover:underline"
-          >
-            explorer <ExternalLink className="size-2.5" aria-hidden />
-          </a>
-        </div>
-      ) : (
-        <span className="text-text-dim/60">no oracle, no admin · proof verified on-chain</span>
-      )}
     </div>
   );
 }
@@ -196,7 +292,7 @@ function SettleButton({ pact, onSettled }: { pact: PactRow; onSettled: () => voi
       <div className="mt-3 space-y-1">
         <div className={`flex items-center gap-2 font-mono text-xs ${won ? "text-win" : lost ? "text-lose" : "text-text-dim"}`}>
           <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-          {won ? "WON — predicate TRUE ✓" : lost ? "LOST — predicate FALSE ✗" : "Settled"}
+          {won ? "WON · predicate TRUE ✓" : lost ? "LOST · predicate FALSE ✗" : "Settled"}
         </div>
         {result.demo ? (
           <p className="font-mono text-[10px] text-text-dim">
@@ -349,7 +445,7 @@ function BetCard({ pact, userDid, onMutate }: { pact: PactRow; userDid: string; 
               </div>
               <div>
                 <p className="text-[10px] text-text-dim uppercase tracking-wider">Period</p>
-                <p className="text-text mt-0.5">{period ?? "—"}</p>
+                <p className="text-text mt-0.5">{period ?? "·"}</p>
               </div>
               <div>
                 <p className="text-[10px] text-text-dim uppercase tracking-wider">Stat tracked</p>
@@ -359,7 +455,7 @@ function BetCard({ pact, userDid, onMutate }: { pact: PactRow; userDid: string; 
                 <p className="text-[10px] text-text-dim uppercase tracking-wider">Condition</p>
                 <p className="text-text mt-0.5">
                   {opWord ? `${opWord} ` : ""}
-                  {comparison && threshold != null ? `${comparison} ${threshold}` : "—"}
+                  {comparison && threshold != null ? `${comparison} ${threshold}` : "·"}
                 </p>
               </div>
               <div>
@@ -539,7 +635,7 @@ export default function BetsPage() {
         </div>
         <div>
           <h1 className="text-xl font-semibold text-text">Sign in to see your bets</h1>
-          <p className="mt-2 text-sm text-text-dim">Your placed pacts, wins, and losses — all in one place.</p>
+          <p className="mt-2 text-sm text-text-dim">Your placed pacts, wins, and losses · all in one place.</p>
         </div>
         <button
           type="button"

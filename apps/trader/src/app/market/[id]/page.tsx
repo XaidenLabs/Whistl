@@ -1,20 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowLeft, TrendingUp, TrendingDown, Sparkles, Loader2 } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { ArrowLeft, TrendingUp, TrendingDown, Loader2, Brain, Check, Lock } from "lucide-react";
 import MatchChart, { type Candle } from "@/components/MatchChart";
 import BetModal from "@/components/BetModal";
+import Header from "@/components/Header";
+import { cn, fetcher } from "@/lib/ui";
+import { oraPick, oraGoalsPick, payoutOn, type OuOdds } from "@/lib/ora/pick";
+import { useBackBet } from "@/hooks/useBackBet";
 import { parseCurrentScore, type TxScoreEvent } from "@/lib/txline/types";
-
-function cn(...i: ClassValue[]) {
-  return twMerge(clsx(i));
-}
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
 type Sel = "home" | "draw" | "away";
 
 type ChartResp = {
@@ -35,10 +32,11 @@ export default function MarketPage() {
 
   const { data: chart, isLoading } = useSWR<ChartResp>(
     Number.isFinite(fixtureId) ? `/api/agent/chart?fixtureId=${fixtureId}&sel=${sel}` : null,
-    fetcher, { revalidateOnFocus: false },
+    fetcher, { revalidateOnFocus: false, refreshInterval: 30_000, keepPreviousData: true },
   );
-  const { data: oddsData } = useSWR<{ ok: boolean; odds?: Record<Sel, { dec: number; pct: number | null }> }>(
+  const { data: oddsData } = useSWR<{ ok: boolean; odds?: Record<Sel, { dec: number; pct: number | null }>; ou?: OuOdds }>(
     Number.isFinite(fixtureId) ? `/api/txline/odds?fixtureId=${fixtureId}` : null, fetcher,
+    { refreshInterval: 30_000 },
   );
   const { data: scoreData } = useSWR<{ ok: boolean; scores: TxScoreEvent[] }>(
     Number.isFinite(fixtureId) ? `/api/txline/scores/${fixtureId}` : null, fetcher, { refreshInterval: 30_000 },
@@ -51,6 +49,18 @@ export default function MarketPage() {
   const change = chart?.changePct ?? null;
   const up = (change ?? 0) >= 0;
 
+  // ORA's one-tap call for this match, from the live odds.
+  const { back, pendingId, authenticated } = useBackBet();
+  const pick = oraPick(odds ?? null);
+  const pickTeam = pick ? (pick.selection === "home" ? p1 : pick.selection === "away" ? p2 : "the Draw") : null;
+  // TxLINE only includes the O/U market in some snapshots — retain the last good one so the
+  // goals card doesn't flicker out on the intermittent responses.
+  const lastGoals = useRef<ReturnType<typeof oraGoalsPick>>(null);
+  const freshGoals = oraGoalsPick(oddsData?.ou ?? null);
+  if (freshGoals) lastGoals.current = freshGoals;
+  const goalsPick = freshGoals ?? lastGoals.current;
+  const backing = pendingId === fixtureId;
+
   const legs: { sel: Sel; label: string }[] = [
     { sel: "home", label: p1 },
     { sel: "draw", label: "Draw" },
@@ -60,17 +70,18 @@ export default function MarketPage() {
   const oraRead = (() => {
     if (change == null) return "ORA is watching the market open up…";
     const who = sel === "draw" ? "the draw" : sel === "home" ? p1 : p2;
-    if (Math.abs(change) < 1.5) return `${who}'s price is holding steady — the market hasn't picked a side yet.`;
+    if (Math.abs(change) < 1.5) return `${who}'s price is holding steady · the market hasn't picked a side yet.`;
     return up
-      ? `Money is flowing into ${who} — its win-chance has climbed ${Math.abs(change)}% this window. Momentum is building.`
-      : `${who} is drifting — its win-chance has slid ${Math.abs(change)}% this window. The market is cooling on them.`;
+      ? `Money is flowing into ${who} · its win-chance has climbed ${Math.abs(change)}% this window. Momentum is building.`
+      : `${who} is drifting · its win-chance has slid ${Math.abs(change)}% this window. The market is cooling on them.`;
   })();
 
   return (
-    <div className="min-h-screen bg-[#050505] px-4 py-5 font-mono text-gray-300">
-      <div className="mx-auto w-full max-w-3xl">
+    <div className="min-h-screen bg-[#050505] font-mono text-gray-300">
+      <Header tagline={p1 !== "Home" ? `${p1} v ${p2}` : "match desk"} />
+      <div className="mx-auto w-full max-w-3xl px-4 py-6">
         <Link href="/" className="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-white">
-          <ArrowLeft className="size-4" /> Markets
+          <ArrowLeft className="size-4" /> All markets
         </Link>
 
         {/* Header */}
@@ -83,7 +94,7 @@ export default function MarketPage() {
             <div className="text-right">
               <p className="font-mono text-2xl font-bold text-white">{score.p1Goals}–{score.p2Goals}</p>
               <p className="text-[10px] text-emerald-400">
-                {score.isFinished ? "FULL TIME" : score.clockRunning ? `${score.minutes}' LIVE` : "—"}
+                {score.isFinished ? "FULL TIME" : score.clockRunning ? `${score.minutes}' LIVE` : "·"}
               </p>
             </div>
           )}
@@ -99,7 +110,7 @@ export default function MarketPage() {
                 className={cn("rounded-lg border p-3 text-left transition-colors",
                   active ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-[#0a0a0a] hover:border-white/20")}>
                 <p className="truncate text-[10px] text-gray-400">{l.sel === "draw" ? "Draw" : l.label}</p>
-                <p className="text-lg font-bold text-white">{leg?.pct != null ? `${Math.round(leg.pct)}%` : "—"}</p>
+                <p className="text-lg font-bold text-white">{leg?.pct != null ? `${Math.round(leg.pct)}%` : "·"}</p>
                 <p className="text-[10px] text-gray-500">{leg?.dec ? `${leg.dec.toFixed(2)}×` : ""}</p>
               </button>
             );
@@ -114,7 +125,7 @@ export default function MarketPage() {
                 {sel === "draw" ? "Draw" : sel === "home" ? p1 : p2} · win-probability
               </p>
               <p className="text-2xl font-bold text-white">
-                {chart?.current ? `${chart.current.prob}%` : "—"}
+                {chart?.current ? `${chart.current.prob}%` : "·"}
                 {change != null && (
                   <span className={cn("ml-2 inline-flex items-center gap-1 text-sm font-bold", up ? "text-emerald-400" : "text-red-400")}>
                     {up ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
@@ -127,7 +138,7 @@ export default function MarketPage() {
           <div className="h-72 w-full">
             {isLoading && !chart ? (
               <div className="flex h-full items-center justify-center text-gray-600"><Loader2 className="size-5 animate-spin" /></div>
-            ) : chart && chart.candles.length > 1 ? (
+            ) : chart?.candles && chart.candles.length > 1 ? (
               <MatchChart candles={chart.candles} />
             ) : (
               <div className="flex h-full items-center justify-center text-center text-xs text-gray-600">
@@ -140,18 +151,58 @@ export default function MarketPage() {
         {/* ORA reads the market */}
         <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
           <p className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-400">
-            <Sparkles className="size-3" /> ORA reads the market
+            <Brain className="size-3" /> ORA reads the market
           </p>
           <p className="text-sm leading-relaxed text-gray-300">{oraRead}</p>
         </div>
 
-        {/* Predict / trade */}
+        {/* ORA's call — one-tap back (primary) */}
+        {pick && pickTeam && (
+          <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-4">
+            <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-400">
+              <Brain className="size-3.5" /> ORA&apos;s call · {pick.confidence}
+            </p>
+            <p className="mt-1 text-sm text-gray-200">
+              ORA backs <span className="font-bold text-white">{pickTeam}</span> · {pick.prob}% chance · pays {pick.dec.toFixed(2)}×
+            </p>
+            <button
+              onClick={() => back({ fixtureId, match: `${p1} v ${p2}`, selection: pick.selection, odds: pick.dec })}
+              disabled={backing}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 py-3 text-sm font-bold text-black hover:bg-emerald-400 disabled:opacity-60">
+              {backing ? <><Loader2 className="size-4 animate-spin" /> Backing…</>
+                : !authenticated ? <><Lock className="size-3.5" /> Sign in to back ORA</>
+                : <><Check className="size-4" /> Back ORA · 50 USDC → win {payoutOn(50, pick.dec)}</>}
+            </button>
+          </div>
+        )}
+
+        {/* ORA's goals call — Over/Under (one-tap back) */}
+        {goalsPick && (
+          <div className="mt-2 rounded-xl border border-sky-500/30 bg-sky-500/[0.05] p-4">
+            <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-sky-400">
+              <Brain className="size-3.5" /> Goals · total over/under
+            </p>
+            <p className="mt-1 text-sm text-gray-200">
+              ORA leans <span className="font-bold text-white">{goalsPick.label} goals</span> · {goalsPick.prob}% chance · pays {goalsPick.dec.toFixed(2)}×
+            </p>
+            <button
+              onClick={() => back({ fixtureId, match: `${p1} v ${p2}`, selection: goalsPick.selection, odds: goalsPick.dec, market: "goals_ou", line: goalsPick.line })}
+              disabled={backing}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 py-3 text-sm font-bold text-black hover:bg-sky-400 disabled:opacity-60">
+              {backing ? <><Loader2 className="size-4 animate-spin" /> Backing…</>
+                : !authenticated ? <><Lock className="size-3.5" /> Sign in to back</>
+                : <><Check className="size-4" /> Back {goalsPick.label} · 50 USDC → win {payoutOn(50, goalsPick.dec)}</>}
+            </button>
+          </div>
+        )}
+
+        {/* Pick your own side (secondary) */}
         <button onClick={() => setBetOpen(true)}
-          className="mt-3 w-full rounded-lg bg-emerald-500 py-3 text-sm font-bold text-black hover:bg-emerald-400">
-          Predict the outcome — place a trade
+          className="mt-2 w-full rounded-lg border border-white/10 py-2.5 text-xs font-medium text-gray-300 transition-colors hover:bg-white/5">
+          Or pick your own 1X2 side →
         </button>
         <p className="mt-2 text-center text-[10px] text-gray-600">
-          Back who you think wins with your paper wallet · settles automatically on the real result.
+          Settles automatically on the real result · every prediction gets its own shareable page.
         </p>
       </div>
 

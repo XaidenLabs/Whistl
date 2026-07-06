@@ -28,7 +28,7 @@ export function humanStatement(
   p1 = "Home",
   p2 = "Away",
 ): string {
-  if (!terms || terms.comparison == null) return "—";
+  if (!terms || terms.comparison == null) return "·";
   const { statAKey, statBKey, hasStatB, comparison, threshold = 0, op } = terms;
   const noun = nounOf(statAKey);
 

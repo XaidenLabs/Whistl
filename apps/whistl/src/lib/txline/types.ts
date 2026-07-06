@@ -102,7 +102,7 @@ export interface TxFixture {
   Participant1Id: number;
   Participant2Id: number;
   Participant1IsHome: boolean;
-  StartTime: number; // unix milliseconds (kickoff) — same unit as TxScoreEvent.StartTime
+  StartTime: number; // unix milliseconds (kickoff) · same unit as TxScoreEvent.StartTime
   Ts: number;
   Competition: string;
   CompetitionId: number;

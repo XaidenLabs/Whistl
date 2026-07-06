@@ -1,21 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { X, Loader2, Check } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn, fetcher } from "@/lib/ui";
 import { useTraderWallet } from "@/hooks/useTraderWallet";
-
-function cn(...i: ClassValue[]) {
-  return twMerge(clsx(i));
-}
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
 type Sel = "home" | "draw" | "away";
 
 export type BetFixture = { FixtureId: number; Participant1: string; Participant2: string };
 
 export default function BetModal({ fixture, onClose }: { fixture: BetFixture; onClose: () => void }) {
+  const router = useRouter();
   const { authenticated, login, getAccessToken, wallet, mutateWallet } = useTraderWallet();
   const { data: oddsData } = useSWR<{ ok: boolean; odds?: { home: { dec: number }; draw: { dec: number }; away: { dec: number } } }>(
     `/api/txline/odds?fixtureId=${fixture.FixtureId}`, fetcher,
@@ -54,7 +50,8 @@ export default function BetModal({ fixture, onClose }: { fixture: BetFixture; on
       if (!j.ok) { setError(j.error || "Couldn't place bet"); return; }
       setDone(true);
       mutateWallet();
-      setTimeout(onClose, 1200);
+      // Take the user to their new prediction's own shareable page.
+      setTimeout(() => router.push(`/prediction/${j.bet.id}`), 900);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -95,7 +92,7 @@ export default function BetModal({ fixture, onClose }: { fixture: BetFixture; on
                     sel === l.sel ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-black hover:border-white/20",
                     !l.dec && "cursor-not-allowed opacity-40")}>
                   <p className="truncate text-[10px] text-gray-400">{l.sel === "draw" ? "Draw" : l.label}</p>
-                  <p className="text-sm font-bold text-white">{oddsLoading ? "…" : l.dec ? `${l.dec.toFixed(2)}×` : "—"}</p>
+                  <p className="text-sm font-bold text-white">{oddsLoading ? "…" : l.dec ? `${l.dec.toFixed(2)}×` : "·"}</p>
                 </button>
               ))}
             </div>
@@ -108,7 +105,7 @@ export default function BetModal({ fixture, onClose }: { fixture: BetFixture; on
                   {v}
                 </button>
               ))}
-              <span className="ml-auto text-[10px] text-gray-500">balance {balance ?? "—"}</span>
+              <span className="ml-auto text-[10px] text-gray-500">balance {balance ?? "·"}</span>
             </div>
 
             {sel && (

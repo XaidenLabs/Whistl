@@ -19,3 +19,9 @@ create table if not exists trader_bets (
 create index if not exists trader_bets_user_idx on trader_bets(user_did);
 
 alter table trader_bets enable row level security;
+
+-- ── Migration: multi-market support (match winner + goals over/under). Safe to re-run. ──
+alter table trader_bets add column if not exists market text not null default '1x2';
+alter table trader_bets add column if not exists line   numeric;
+-- Allow over/under selections (goals market) alongside 1X2.
+alter table trader_bets drop constraint if exists trader_bets_selection_check;

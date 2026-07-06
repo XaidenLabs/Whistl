@@ -71,7 +71,7 @@ export async function saveCommentaryOnChain(p: {
     // Format is parsed back out by /api/pulse/commentaries when it reads the feed off-chain.
     const memo =
       `ORA·WHISTL | WC#${p.fixtureId} | ${p.source.toUpperCase()} | ${p.headline}` +
-      (p.analysis ? ` — ${p.analysis}` : "") +
+      (p.analysis ? ` · ${p.analysis}` : "") +
       (p.market ? ` || MKT: ${p.market}` : "");
     const data = Buffer.from(memo.slice(0, 450), "utf8");
 

@@ -63,7 +63,7 @@ function PositionsModal({ onClose }: { onClose: () => void }) {
 
         <div className="max-h-80 space-y-2 overflow-y-auto">
           {positions.length === 0 && (
-            <p className="py-8 text-center text-xs text-gray-600">No trades yet — tap any market to place your first.</p>
+            <p className="py-8 text-center text-xs text-gray-600">No trades yet · tap any market to place your first.</p>
           )}
           {positions.map((p) => <PositionRow key={p.id} p={p} />)}
         </div>

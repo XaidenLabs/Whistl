@@ -187,7 +187,7 @@ function Inner() {
               <div className="flex items-end justify-between">
                 <div>
                   <p className="font-mono text-xl font-bold tabular-nums text-signal">
-                    {usdc != null ? usdc.toFixed(2) : "—"}
+                    {usdc != null ? usdc.toFixed(2) : "·"}
                     <span className="ml-1 text-xs font-normal text-text-dim">USDC</span>
                   </p>
                   {/* SOL shown smaller for gas awareness */}

@@ -12,7 +12,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PULSE — World Cup 2026 Feed",
+  title: "PULSE · World Cup 2026 Feed",
   description: "Live World Cup 2026 updates, sharp movements, and sweepstakes.",
   manifest: "/manifest.json",
   appleWebApp: {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     apple: "/icon-192.svg",
   },
   openGraph: {
-    title: "PULSE — World Cup 2026 Feed",
+    title: "PULSE · World Cup 2026 Feed",
     description: "Live updates and sharp movements.",
     type: "website",
   },

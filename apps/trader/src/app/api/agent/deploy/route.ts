@@ -39,6 +39,7 @@ function fitScore(spec: StrategySpec, m: MatchInput): number {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const spec = body?.spec as StrategySpec | undefined;
+  const onlyFixtureId = Number(body?.fixtureId) || null; // scope ORA to a single match
   if (!spec?.selection || !spec?.trigger) {
     return NextResponse.json({ ok: false, error: "Missing strategy spec" }, { status: 400 });
   }
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
 
     const candidates = fixtures
       .filter((f) => now < f.StartTime + 2.5 * 3600 * 1000)
+      .filter((f) => onlyFixtureId == null || f.FixtureId === onlyFixtureId)
       .sort((a, b) => a.StartTime - b.StartTime)
       .slice(0, MAX_SCAN);
 
@@ -95,7 +97,7 @@ export async function POST(req: Request) {
     for (const { f, input, triggered } of picks) {
       const reasoning = triggered
         ? reasoningFor(spec, input)
-        : `Best available fit for "${spec.name}" — ${SEL_LABEL[spec.selection]} at ${Math.round(input.entryProb)}% (no market met the strict rule).`;
+        : `Best available fit for "${spec.name}" · ${SEL_LABEL[spec.selection]} at ${Math.round(input.entryProb)}% (no market met the strict rule).`;
       const call: AgentCall = {
         strategy: spec.name,
         match: input.match,

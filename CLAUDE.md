@@ -115,6 +115,31 @@ Winning build (in order):
 ## Naming
 Project is **WHISTL** (not "MatchMind" — that was an earlier name, fully retired).
 
+## ⚠️ LAPTOP MIGRATION + KEY RECOVERY (2026-07-05) — READ FIRST
+The old laptop (and its `derisk/.env`) is gone. The wallet `35rve1jinPQf4shKZvohQm5ozBqLHhboEZ4BM7vqy52t`
+was the derisk payer + test-USDC mint authority + **program upgrade authority** + TxLINE signer — its secret
+is UNRECOVERABLE. Consequences + the fresh replacements (all regenerated via `derisk/setup-p2.mjs` +
+`02-subscribe-activate.mjs` + `activate.mjs`, saved to the new `derisk/.env` and all three
+`apps/*/.env.local`):
+- **Program `BZ2pNds…MRTz` can NO LONGER be upgraded** (upgrade authority = the lost wallet). It stays
+  deployed + working forever; only matters if program *logic* must change → then deploy a FRESH program id.
+- **NEW ops wallet** (payer / mint authority / TxLINE signer): `21t8mAuZELKrkACUXRUBKxvU9KBKnRdRq4E2V9mbWwzL`
+  (= `MINT_AUTHORITY_SECRET_BASE58` / `DEVNET_KEYPAIR_BASE58`).
+- **NEW test-USDC mint:** `39JZ9WAeAsFPGarDJ6NAAKvNQka1xoQDz44KB2rMQCc9` (6 dec) — replaces dead `9yMEQ…`.
+- **NEW ORA wallet:** `4S6oNHWpqQUdgAz2skN9kt3Sq6i4iVUgZEPThL1dmyPn` (funded 0.2 SOL + 100k test-USDC) —
+  replaces dead `21Kkx…`.
+- **NEW `TXLINE_API_TOKEN`** `txoracle_api_6e4c…` (deterministic per wallet). Re-subscribed + re-activated
+  again 2026-07-05 (subscribe tx `3ihZ6ycd…` via `derisk/02-subscribe-activate.mjs` → `activate.mjs`; the
+  earlier `4eEtctQb…` sub had lapsed → data plane 403'd). **Re-verified 2026-07-05:** `/api/txline/fixtures`
+  → 200 `source:live` real fixtures, `/api/agent/ledger` → 200; all THREE apps boot clean. ⚠️ Right after a
+  fresh activation, a raw curl 403s "API Token not found" for a few min (data-plane lag + each curl mints a
+  new JWT) — test via the app's `/api/txline/fixtures` proxy (caches the guest JWT), not curl.
+  The addresses below (`9yMEQ…`, `21Kkx…`, `35rve1ji…`) are the OLD/DEAD ones — kept for history; use the NEW ones above.
+- **NOW SET (2026-07-05):** `ACE_API_KEY`, `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET`, and all Supabase
+  keys are populated in every `apps/*/.env.local` (shared values identical across the three apps).
+  Still blank/optional: `NEXT_PUBLIC_VAPID_*` (regen via `npx web-push generate-vapid-keys`). `app/` (singular)
+  is dead — the live apps are `apps/{whistl,pulse,trader}` (turbo monorepo; run one via `npm run dev` in its dir).
+
 ## Current build state (as of 2026-06-25)
 - **`app/`** = the REAL frontend: fresh **Next.js 16.2.9 + React 19 + Tailwind v4** (App Router,
   `src/`). ⚠️ Read `app/AGENTS.md` + `app/node_modules/next/dist/docs/` before writing Next code —

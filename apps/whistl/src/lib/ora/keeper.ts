@@ -169,13 +169,13 @@ function narratePact(
   irreversible: boolean,
   minutes: number,
 ): string {
-  if (val == null) return `${pact.statement} — tracking (no data yet)`;
+  if (val == null) return `${pact.statement} · tracking (no data yet)`;
   const result = pactResult(val, pact.terms);
   if (irreversible) {
-    return `${pact.statement} — LOCKED ${result ? "TRUE ✓" : "FALSE ✗"} (value: ${val}, can't flip with ${90 - minutes} min left)`;
+    return `${pact.statement} · LOCKED ${result ? "TRUE ✓" : "FALSE ✗"} (value: ${val}, can't flip with ${90 - minutes} min left)`;
   }
   const dir = result ? "tracking TRUE" : "tracking FALSE";
-  return `${pact.statement} — ${dir} (value: ${val}, P(TRUE) ${(prob * 100).toFixed(1)}%)`;
+  return `${pact.statement} · ${dir} (value: ${val}, P(TRUE) ${(prob * 100).toFixed(1)}%)`;
 }
 
 // Running known totals — only updated when a field is actually present in the event.
@@ -212,30 +212,30 @@ function narrateScoreEvents(
   // Goals (fire only when the field is present AND changed)
   if (g1 !== null) {
     if (g1 > prev.g1) narrated.push({ kind: "goal",
-      msg: `${mins}' GOAL — ${p1} scores!  ${p1} ${g1} - ${cur2} ${p2}` });
+      msg: `${mins}' GOAL · ${p1} scores!  ${p1} ${g1} - ${cur2} ${p2}` });
     else if (g1 < prev.g1) narrated.push({ kind: "goal_cancelled",
-      msg: `${mins}' GOAL CANCELLED (VAR) — ${p1}.  Score: ${p1} ${g1} - ${cur2} ${p2}` });
+      msg: `${mins}' GOAL CANCELLED (VAR) · ${p1}.  Score: ${p1} ${g1} - ${cur2} ${p2}` });
   }
   if (g2 !== null) {
     if (g2 > prev.g2) narrated.push({ kind: "goal",
-      msg: `${mins}' GOAL — ${p2} scores!  ${p1} ${cur1} - ${g2} ${p2}` });
+      msg: `${mins}' GOAL · ${p2} scores!  ${p1} ${cur1} - ${g2} ${p2}` });
     else if (g2 < prev.g2) narrated.push({ kind: "goal_cancelled",
-      msg: `${mins}' GOAL CANCELLED (VAR) — ${p2}.  Score: ${p1} ${cur1} - ${g2} ${p2}` });
+      msg: `${mins}' GOAL CANCELLED (VAR) · ${p2}.  Score: ${p1} ${cur1} - ${g2} ${p2}` });
   }
 
   // Yellow cards
-  if (y1 !== null && y1 > prev.y1) narrated.push({ kind: "yellow_card", msg: `${mins}' YELLOW CARD — ${p1}` });
-  if (y2 !== null && y2 > prev.y2) narrated.push({ kind: "yellow_card", msg: `${mins}' YELLOW CARD — ${p2}` });
+  if (y1 !== null && y1 > prev.y1) narrated.push({ kind: "yellow_card", msg: `${mins}' YELLOW CARD · ${p1}` });
+  if (y2 !== null && y2 > prev.y2) narrated.push({ kind: "yellow_card", msg: `${mins}' YELLOW CARD · ${p2}` });
 
   // Red cards
-  if (r1 !== null && r1 > prev.r1) narrated.push({ kind: "red_card", msg: `${mins}' RED CARD — ${p1}` });
-  if (r2 !== null && r2 > prev.r2) narrated.push({ kind: "red_card", msg: `${mins}' RED CARD — ${p2}` });
+  if (r1 !== null && r1 > prev.r1) narrated.push({ kind: "red_card", msg: `${mins}' RED CARD · ${p1}` });
+  if (r2 !== null && r2 > prev.r2) narrated.push({ kind: "red_card", msg: `${mins}' RED CARD · ${p2}` });
 
   // Corners
   if (c1 !== null && c1 > prev.c1) narrated.push({ kind: "corner",
-    msg: `${mins}' Corner — ${p1}  (${c1} total)` });
+    msg: `${mins}' Corner · ${p1}  (${c1} total)` });
   if (c2 !== null && c2 > prev.c2) narrated.push({ kind: "corner",
-    msg: `${mins}' Corner — ${p2}  (${c2} total)` });
+    msg: `${mins}' Corner · ${p2}  (${c2} total)` });
 
   // GameState hints (VAR, half-time, kick-off, penalty)
   if (ev.GameState) {
@@ -243,11 +243,11 @@ function narrateScoreEvents(
     if (gs.includes("var") || gs.includes("review") || gs.includes("check")) {
       narrated.push({ kind: "var", msg: `${mins}' VAR review in progress...` });
     } else if (gs.includes("half time") || gs === "ht" || gs === "halftime") {
-      narrated.push({ kind: "observation", msg: `${mins}' — Half time` });
+      narrated.push({ kind: "observation", msg: `${mins}' · Half time` });
     } else if (gs.includes("kick") || gs === "ko") {
-      narrated.push({ kind: "init", msg: `Kick off — match has started` });
+      narrated.push({ kind: "init", msg: `Kick off · match has started` });
     } else if (gs.includes("penalty") && !gs.includes("shootout")) {
-      narrated.push({ kind: "observation", msg: `${mins}' — Penalty kick awarded` });
+      narrated.push({ kind: "observation", msg: `${mins}' · Penalty kick awarded` });
     }
   }
 
@@ -293,7 +293,7 @@ async function settlePact(
   }
   const isTrue = pactResult(val, pact.terms);
 
-  push(fixtureId, "settle_start", `Settling pact ${pact.pactId}: "${pact.statement}" — final value: ${val} → ${isTrue ? "TRUE ✓" : "FALSE ✗"}`);
+  push(fixtureId, "settle_start", `Settling pact ${pact.pactId}: "${pact.statement}" · final value: ${val} → ${isTrue ? "TRUE ✓" : "FALSE ✗"}`);
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   let txSig: string | null = null;
@@ -303,8 +303,8 @@ async function settlePact(
   if (!isNumericId) {
     push(fixtureId, "settle_done",
       isTrue
-        ? `[demo] ${pact.statement} = TRUE ✓ — creator wins ${pact.stakeUsdc * 2} USDC`
-        : `[demo] ${pact.statement} = FALSE ✗ — ORA wins ${pact.stakeUsdc * 2} USDC`,
+        ? `[demo] ${pact.statement} = TRUE ✓ · creator wins ${pact.stakeUsdc * 2} USDC`
+        : `[demo] ${pact.statement} = FALSE ✗ · ORA wins ${pact.stakeUsdc * 2} USDC`,
       { pactId: pact.pactId, data: { isTrue, val, demo: true, statement: pact.statement, totalPayout: pact.stakeUsdc * 2 } },
     );
   } else {
@@ -328,8 +328,8 @@ async function settlePact(
         txSig = result.sig ?? null;
         push(fixtureId, "settle_done",
           isTrue
-            ? `✓ SETTLED ON-CHAIN — ${pact.statement} = TRUE — ${pact.stakeUsdc * 2} USDC → creator | tx: ${txSig}`
-            : `✓ SETTLED ON-CHAIN — ${pact.statement} = FALSE — ${pact.stakeUsdc * 2} USDC → ORA | tx: ${txSig}`,
+            ? `✓ SETTLED ON-CHAIN · ${pact.statement} = TRUE · ${pact.stakeUsdc * 2} USDC → creator | tx: ${txSig}`
+            : `✓ SETTLED ON-CHAIN · ${pact.statement} = FALSE · ${pact.stakeUsdc * 2} USDC → ORA | tx: ${txSig}`,
           { pactId: pact.pactId, data: { isTrue, val, txSig, statement: pact.statement, totalPayout: pact.stakeUsdc * 2 } },
         );
       } else {
@@ -338,8 +338,8 @@ async function settlePact(
         if (reason === "PACT_NOT_ACCEPTED" || reason === "PACT_NOT_OPEN") {
           push(fixtureId, "settle_done",
             isTrue
-              ? `[demo] ${pact.statement} = TRUE ✓ — creator wins ${pact.stakeUsdc * 2} USDC`
-              : `[demo] ${pact.statement} = FALSE ✗ — ORA wins ${pact.stakeUsdc * 2} USDC`,
+              ? `[demo] ${pact.statement} = TRUE ✓ · creator wins ${pact.stakeUsdc * 2} USDC`
+              : `[demo] ${pact.statement} = FALSE ✗ · ORA wins ${pact.stakeUsdc * 2} USDC`,
             { pactId: pact.pactId, data: { isTrue, val, demo: true, statement: pact.statement, totalPayout: pact.stakeUsdc * 2 } },
           );
         } else {
@@ -376,9 +376,9 @@ export async function runReplay(fixtureId: number, rawEvents: TxScoreEvent[]): P
 
   const pactList = state.pacts.length > 0
     ? `Tracking ${state.pacts.length} pact${state.pacts.length !== 1 ? "s" : ""}`
-    : "No pacts attached — ORA watches for analysis only";
+    : "No pacts attached · ORA watches for analysis only";
 
-  push(fixtureId, "init", `ORA Sentinel online — ${eventsWithScore.length} match events loaded`);
+  push(fixtureId, "init", `ORA Sentinel online · ${eventsWithScore.length} match events loaded`);
   push(fixtureId, "init", pactList);
 
   let lastMinute = -1;
@@ -411,7 +411,7 @@ export async function runReplay(fixtureId: number, rawEvents: TxScoreEvent[]): P
       const goals2 = lastStats["2"] ?? ev.Score?.Participant2?.Total?.Goals ?? 0;
       state.currentScore = { p1: goals1, p2: goals2, minutes: mins };
 
-      const lines: string[] = [`${mins}' — Score: ${state.p1} ${goals1} - ${goals2} ${state.p2}`];
+      const lines: string[] = [`${mins}' · Score: ${state.p1} ${goals1} - ${goals2} ${state.p2}`];
       for (const pact of state.pacts) {
         if (state.settled.has(pact.pactId)) continue;
         const val = statValue(lastStats, pact.terms);
@@ -422,7 +422,7 @@ export async function runReplay(fixtureId: number, rawEvents: TxScoreEvent[]): P
 
         // Early settle if irreversible
         if (irrev && !state.settled.has(pact.pactId)) {
-          push(fixtureId, "early_settle", `${mins}' — "${pact.statement}" is ALREADY DECIDED (value: ${val}) — settling early`, { pactId: pact.pactId });
+          push(fixtureId, "early_settle", `${mins}' · "${pact.statement}" is ALREADY DECIDED (value: ${val}) · settling early`, { pactId: pact.pactId });
           await sleep(delayMs * 2);
           await settlePact(fixtureId, pact, lastStats);
         }
@@ -449,7 +449,7 @@ export async function runReplay(fixtureId: number, rawEvents: TxScoreEvent[]): P
   // Match is finished or pre-match — if data ended before 90', wait out the clock with heartbeats
   if (prevClockSeconds < NINETY_MINS) {
     const lastMins = Math.floor(prevClockSeconds / 60);
-    push(fixtureId, "observation", `${lastMins}' — Watching until full time…`);
+    push(fixtureId, "observation", `${lastMins}' · Watching until full time…`);
     let simClock = prevClockSeconds;
     while (simClock < NINETY_MINS) {
       if (state.status === "done") break;
@@ -462,10 +462,10 @@ export async function runReplay(fixtureId: number, rawEvents: TxScoreEvent[]): P
       const goals2 = lastStats["2"] ?? 0;
       state.currentScore = { p1: goals1, p2: goals2, minutes: simMins };
       if (simClock < NINETY_MINS) {
-        push(fixtureId, "heartbeat", `${simMins}' — ${state.p1} ${goals1}-${goals2} ${state.p2}`,
+        push(fixtureId, "heartbeat", `${simMins}' · ${state.p1} ${goals1}-${goals2} ${state.p2}`,
           { data: { minutes: simMins, goals1, goals2 } });
       } else {
-        push(fixtureId, "finished", `90' — Match completed.  ${state.p1} ${goals1} - ${goals2} ${state.p2}`,
+        push(fixtureId, "finished", `90' · Match completed.  ${state.p1} ${goals1} - ${goals2} ${state.p2}`,
           { data: { minutes: 90, goals1, goals2 } });
       }
     }
@@ -477,7 +477,7 @@ export async function runReplay(fixtureId: number, rawEvents: TxScoreEvent[]): P
   const finalGoals2 = finalStats["2"] ?? 0;
   state.currentScore = { p1: finalGoals1, p2: finalGoals2, minutes: 90 };
   if (prevClockSeconds >= NINETY_MINS) {
-    push(fixtureId, "finished", `90' — Match completed.  ${state.p1} ${finalGoals1} - ${finalGoals2} ${state.p2}`);
+    push(fixtureId, "finished", `90' · Match completed.  ${state.p1} ${finalGoals1} - ${finalGoals2} ${state.p2}`);
   }
   state.status = "settling";
   const settlePause = Math.max(500, Math.min(3000, (5 * 1000) / MATCH_SPEED));
@@ -502,7 +502,7 @@ async function runLivePolling(
 
   const startMins = Math.floor(startClockSeconds / 60);
   push(fixtureId, "observation",
-    `${startMins}' — Match is LIVE. Polling TxLINE for real-time updates every 15s`);
+    `${startMins}' · Match is LIVE. Polling TxLINE for real-time updates every 15s`);
 
   // Fetch a baseline snapshot NOW so we diff against actual current state,
   // not the potentially-stale Stats dict from the historical replay.
@@ -533,7 +533,7 @@ async function runLivePolling(
     try {
       snapshot = (await getScoresSnapshot(fixtureId)) as TxScoreEvent[];
     } catch (e) {
-      push(fixtureId, "observation", `[poll ${poll + 1}] TxLINE error — ${(e as Error).message}`);
+      push(fixtureId, "observation", `[poll ${poll + 1}] TxLINE error · ${(e as Error).message}`);
       continue;
     }
 
@@ -550,37 +550,37 @@ async function runLivePolling(
     if (current.p1Goals > prevGoals1) {
       for (let i = prevGoals1; i < current.p1Goals; i++)
         push(fixtureId, "goal",
-          `${mins}' GOAL — ${state.p1} scores!  ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
+          `${mins}' GOAL · ${state.p1} scores!  ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
     } else if (current.p1Goals < prevGoals1) {
       push(fixtureId, "goal_cancelled",
-        `${mins}' GOAL CANCELLED (VAR) — ${state.p1}.  Score: ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
+        `${mins}' GOAL CANCELLED (VAR) · ${state.p1}.  Score: ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
     }
     if (current.p2Goals > prevGoals2) {
       for (let i = prevGoals2; i < current.p2Goals; i++)
         push(fixtureId, "goal",
-          `${mins}' GOAL — ${state.p2} scores!  ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
+          `${mins}' GOAL · ${state.p2} scores!  ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
     } else if (current.p2Goals < prevGoals2) {
       push(fixtureId, "goal_cancelled",
-        `${mins}' GOAL CANCELLED (VAR) — ${state.p2}.  Score: ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
+        `${mins}' GOAL CANCELLED (VAR) · ${state.p2}.  Score: ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
     }
 
     // Cards
-    if (current.p1Yellow > prevYellow1) push(fixtureId, "yellow_card", `${mins}' YELLOW CARD — ${state.p1}`);
-    if (current.p2Yellow > prevYellow2) push(fixtureId, "yellow_card", `${mins}' YELLOW CARD — ${state.p2}`);
-    if (currRed1 > prevRed1) push(fixtureId, "red_card", `${mins}' RED CARD — ${state.p1}`);
-    if (currRed2 > prevRed2) push(fixtureId, "red_card", `${mins}' RED CARD — ${state.p2}`);
+    if (current.p1Yellow > prevYellow1) push(fixtureId, "yellow_card", `${mins}' YELLOW CARD · ${state.p1}`);
+    if (current.p2Yellow > prevYellow2) push(fixtureId, "yellow_card", `${mins}' YELLOW CARD · ${state.p2}`);
+    if (currRed1 > prevRed1) push(fixtureId, "red_card", `${mins}' RED CARD · ${state.p1}`);
+    if (currRed2 > prevRed2) push(fixtureId, "red_card", `${mins}' RED CARD · ${state.p2}`);
 
     // Corners
     if (current.p1Corners > prevCorners1) push(fixtureId, "corner",
-      `${mins}' Corner — ${state.p1}  (${current.p1Corners} total)`);
+      `${mins}' Corner · ${state.p1}  (${current.p1Corners} total)`);
     if (current.p2Corners > prevCorners2) push(fixtureId, "corner",
-      `${mins}' Corner — ${state.p2}  (${current.p2Corners} total)`);
+      `${mins}' Corner · ${state.p2}  (${current.p2Corners} total)`);
 
     // Score ticker every 10 match-minutes (or every 5 in the final 10)
     if (Math.floor(mins / 10) > Math.floor(prevMins / 10) ||
         (mins >= 80 && mins > prevMins && mins % 5 === 0)) {
       push(fixtureId, "heartbeat",
-        `${mins}' — ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`,
+        `${mins}' · ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`,
         { data: { minutes: mins, goals1: current.p1Goals, goals2: current.p2Goals } });
     }
 
@@ -599,7 +599,7 @@ async function runLivePolling(
         "7": current.p1Corners, "8": current.p2Corners,
       };
       push(fixtureId, "finished",
-        `90' — Match completed.  ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
+        `90' · Match completed.  ${state.p1} ${current.p1Goals} - ${current.p2Goals} ${state.p2}`);
       state.currentScore = { p1: current.p1Goals, p2: current.p2Goals, minutes: 90 };
       state.status = "settling";
       for (const pact of state.pacts) {
@@ -617,7 +617,7 @@ async function runLivePolling(
   // Polling cap reached — settle with what we have
   if (state.status !== "done") {
     push(fixtureId, "finished",
-      `90' — Match completed.  ${state.p1} ${prevGoals1} - ${prevGoals2} ${state.p2}`);
+      `90' · Match completed.  ${state.p1} ${prevGoals1} - ${prevGoals2} ${state.p2}`);
     state.status = "settling";
     const finalStats: Record<string, number> = {
       "1": prevGoals1,   "2": prevGoals2,

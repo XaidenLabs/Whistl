@@ -17,7 +17,8 @@ function resultOf(p1: number, p2: number): Selection {
   return "draw";
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const filterFixtureId = Number(new URL(req.url).searchParams.get("fixtureId")) || null;
   try {
     const conn = devnetConnection();
     const sigs = await conn.getSignaturesForAddress(oraPubkey(), { limit: 100 });
@@ -61,6 +62,7 @@ export async function GET() {
 
         return {
           ...c,
+          fixtureId: fixtureId ?? null,
           status,
           finalScore,
           timestamp: (x.blockTime ?? 0) * 1000,
@@ -107,6 +109,21 @@ export async function GET() {
       settled: settledCount,
       equity,
     };
+
+    // Per-match view: return only this fixture's calls (no global bankroll/equity).
+    if (filterFixtureId != null) {
+      const scoped = callsWithPnl.filter((c) => c.fixtureId === filterFixtureId);
+      return NextResponse.json({
+        ok: true,
+        calls: scoped,
+        record: {
+          won: scoped.filter((c) => c.status === "won").length,
+          lost: scoped.filter((c) => c.status === "lost").length,
+          pending: scoped.filter((c) => c.status === "pending").length,
+        },
+        metrics: null,
+      });
+    }
 
     return NextResponse.json({ ok: true, calls: callsWithPnl, record, metrics });
   } catch (e) {
