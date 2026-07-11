@@ -27,3 +27,6 @@ scratch_fund.js
 whistl/vendor/
 .vercel
 .env*
+
+# Telegram bot subscriber lists
+bots/.subs-*.json

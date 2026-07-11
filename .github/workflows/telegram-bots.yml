@@ -1,0 +1,41 @@
+name: Telegram live bots
+
+# Drives the three serverless bots (WHISTL / PULSE / TxAgent). Each app exposes
+# /api/telegram/tick which runs one broadcast cycle. Vercel Hobby crons only fire once a day, so
+# this workflow pings the tick endpoints every 5 minutes for near-live updates. For truly instant
+# (1-minute) alerts, use a 1-minute pinger like cron-job.org instead, or upgrade Vercel to Pro.
+#
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   WHISTL_URL   e.g. https://whistl.vercel.app
+#   PULSE_URL    e.g. https://pulse.vercel.app
+#   TRADER_URL   e.g. https://txagent.vercel.app
+#   CRON_SECRET  the same value set in all three Vercel projects
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: telegram-bots
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fire each bot tick
+        env:
+          WHISTL_URL: ${{ secrets.WHISTL_URL }}
+          PULSE_URL: ${{ secrets.PULSE_URL }}
+          TRADER_URL: ${{ secrets.TRADER_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set +e
+          for base in "$WHISTL_URL" "$PULSE_URL" "$TRADER_URL"; do
+            if [ -n "$base" ]; then
+              echo "ticking $base"
+              curl -s -m 60 "$base/api/telegram/tick?secret=$CRON_SECRET"
+              echo
+            fi
+          done
