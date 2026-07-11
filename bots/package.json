@@ -1,0 +1,11 @@
+{
+  "name": "whistl-telegram-bots",
+  "private": true,
+  "type": "module",
+  "description": "Live World Cup score/corner/scoreline broadcasters (TxLINE -> Telegram) for WHISTL, PULSE, and TxAgent.",
+  "scripts": {
+    "whistl": "node whistl.mjs",
+    "pulse": "node pulse.mjs",
+    "trader": "node trader.mjs"
+  }
+}

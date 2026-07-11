@@ -1,6 +1,6 @@
 // ORA's brain. This is a real, defensible value model, not "pick the favorite."
 //
-// How it works (say this to a judge and it holds up):
+// How it works:
 //   1. Start from the market's demargined probabilities (TxLINE Pct).
 //   2. Form ORA's OWN estimate by correcting for well-documented public biases:
 //        - the public chronically UNDERBETS draws, most in evenly-matched games,
