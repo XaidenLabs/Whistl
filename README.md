@@ -2,7 +2,7 @@
 
 # ⚽ WHISTL
 
-### The World Cup, settled by math — not by a middleman.
+### The World Cup, settled by math, not by a middleman.
 
 **One backend. Three products. Zero oracles.**
 Trustless P2P prop-bet escrow + settlement on Solana, powered by
@@ -21,7 +21,7 @@ Trustless P2P prop-bet escrow + settlement on Solana, powered by
 
 ---
 
-> **The one sentence.** Two people wager on a verifiable World Cup stat — *"Brazil corners − Argentina corners > 3"* — funds lock in a PDA escrow, and when the match ends **anyone** can settle: our on-chain program **CPIs directly into TxODDS's `validate_stat`**, reads a Merkle proof of the real result, and pays the winner in the same transaction. No oracle. No admin. No manual resolution. **The chain decides.**
+> **The one sentence.** Two people wager on a verifiable World Cup stat (*"Brazil corners − Argentina corners > 3"*); funds lock in a PDA escrow, and when the match ends **anyone** can settle: our on-chain program **CPIs directly into TxODDS's `validate_stat`**, reads a Merkle proof of the real result, and pays the winner in the same transaction. No oracle. No admin. No manual resolution. **The chain decides.**
 
 ---
 
@@ -31,17 +31,17 @@ Every prediction market has the same rotten center: **someone has to say who won
 
 WHISTL removes that someone.
 
-TxODDS publishes match results as **Merkle roots on Solana** and ships a public verifier instruction, `validate_stat`, that returns a plain `bool` for any staked claim. We built a settlement engine that **calls that verifier over CPI from inside the payout transaction** — and only releases escrow based on what the verifier returns, cryptographically proven to have come from TxODDS's own program. Settlement is now a *pure function of on-chain data.*
+TxODDS publishes match results as **Merkle roots on Solana** and ships a public verifier instruction, `validate_stat`, that returns a plain `bool` for any staked claim. We built a settlement engine that **calls that verifier over CPI from inside the payout transaction**, and only releases escrow based on what the verifier returns, cryptographically proven to have come from TxODDS's own program. Settlement is now a *pure function of on-chain data.*
 
 Then we did the thing nobody expects at a hackathon: **we shipped it three times**, as three complete products on one shared backend and one shared contract.
 
 | | Product | What it is | Who it's for |
 |---|---|---|---|
-| 🟢 | **[apps/whistl](apps/whistl)** | The **protocol** — create pacts, ORA takes the other side, one-click settle with a proof receipt | Everyone. The reference product. |
-| 🔵 | **[apps/pulse](apps/pulse)** | **WHISTL Pulse** — the *consumer* app. Live "market intelligence" commentary, sweepstakes, Hi-Lo, push alerts, the Agent Mind explorer | Fans who never touch a DEX |
-| 🟠 | **[apps/trader](apps/trader)** | **TxAgent Desk** — a trading terminal where you write a strategy in plain English, backtest it on real odds, and deploy an agent | Degens & quants |
+| 🟢 | **[apps/whistl](apps/whistl)** | The **protocol**: create pacts, ORA takes the other side, one-click settle with a proof receipt | Everyone. The reference product. |
+| 🔵 | **[apps/pulse](apps/pulse)** | **WHISTL Pulse**, the *consumer* app. Live "market intelligence" commentary, sweepstakes, Hi-Lo, push alerts, the Agent Mind explorer | Fans who never touch a DEX |
+| 🟠 | **[apps/trader](apps/trader)** | **TxAgent Desk**: a trading terminal where you write a strategy in plain English, backtest it on real odds, and deploy an agent | Degens & quants |
 
-> *"What if your phone knew more about the match than the commentator did? Not stats. Not scores. What the market is doing, what the sharp money is saying, what's about to happen — before it happens. For every fan, not just traders."*  ← **that's Pulse.**
+> *"What if your phone knew more about the match than the commentator did? Not stats. Not scores. What the market is doing, what the sharp money is saying, what's about to happen, before it happens. For every fan, not just traders."*  ← **that's Pulse.**
 
 ---
 
@@ -56,7 +56,7 @@ Judges: don't take our word for anything. Click these.
 | **Settlement source (the CPI + proof-provenance check)** | `settle_pact` | [whistl/programs/whistl/src/lib.rs](whistl/programs/whistl/src/lib.rs) |
 | **Live TxLINE data proof (real finished match → `true`)** | de-risk spike | [derisk/04-validate-onchain.mjs](derisk/04-validate-onchain.mjs) |
 
-Both programs return `executable: true` on devnet right now. Settlement isn't a diagram — it's deployed bytecode.
+Both programs return `executable: true` on devnet right now. Settlement isn't a diagram; it's deployed bytecode.
 
 ---
 
@@ -97,22 +97,22 @@ This is the part judges "highly value," so here it is with no hand-waving.
 **Why this is trustless, not "trust-me":**
 
 - **The verifier is TxODDS's, not ours.** We don't score matches. We ask the same on-chain program the judges built, and it answers from published Merkle roots.
-- **Provenance is enforced.** After the CPI we call `get_return_data()` and `require_keys_eq!(returning_program, txoracle::ID)` — a malicious program can't sit in the middle and lie about the result. ([lib.rs:174–182](whistl/programs/whistl/src/lib.rs))
-- **No empty-proof exploit.** Empty `fixture_proof` / `stat_a_proof` are rejected before the vecs are consumed. ([lib.rs:98–102](whistl/programs/whistl/src/lib.rs))
-- **`ts = fixture_summary.updateStats.minTimestamp`**, and the roots PDA is `["daily_scores_roots", u16_le(floor(minTimestamp / 86_400_000))]` — verified against a real finished match in [derisk/04](derisk/04-validate-onchain.mjs).
+- **Provenance is enforced.** After the CPI we call `get_return_data()` and `require_keys_eq!(returning_program, txoracle::ID)`, so a malicious program can't sit in the middle and lie about the result. ([lib.rs:174-182](whistl/programs/whistl/src/lib.rs))
+- **No empty-proof exploit.** Empty `fixture_proof` / `stat_a_proof` are rejected before the vecs are consumed. ([lib.rs:98-102](whistl/programs/whistl/src/lib.rs))
+- **`ts = fixture_summary.updateStats.minTimestamp`**, and the roots PDA is `["daily_scores_roots", u16_le(floor(minTimestamp / 86_400_000))]`, verified against a real finished match in [derisk/04](derisk/04-validate-onchain.mjs).
 - **Cost:** the whole `validate_stat` verification is ≈ **5.8k CU**. Trustless settlement is essentially free.
 
 On-chain instructions: `create_pact` · `accept_pact` · `settle_pact` · `cancel_pact` · `save_commentary` (ORA writes its reasoning on-chain).
 
 ---
 
-## 🤖 ORA — the verifiable AI counterparty
+## 🤖 ORA, the verifiable AI counterparty
 
-P2P markets die of loneliness — nobody to take the other side. WHISTL doesn't have that problem, because the house is an agent named **ORA**, and ORA is made of glass.
+P2P markets die of loneliness: nobody to take the other side. WHISTL doesn't have that problem, because the house is an agent named **ORA**, and ORA is made of glass.
 
 1. **Always-on liquidity.** ORA prices a fair line from live TxODDS odds (reasoning via **AceData Cloud** `gpt-4o-mini`) and instantly takes the counter-side of any pact. You can always bet.
 2. **Glass skull.** Every quote, decision, and settlement is inscribed on-chain through **OOBE Synapse** agent memory (`save_commentary`) → an auditable **Agent Mind** explorer where you watch ORA think and check its P&L.
-3. **Keeper.** A bot ([agent/](agent)) watches for finished pacts and fires the settlement CPI automatically — the brief's named *"keeper bot,"* shipped.
+3. **Keeper.** A bot ([apps/whistl/src/lib/ora/keeper.ts](apps/whistl/src/lib/ora/keeper.ts)) watches for finished pacts and fires the settlement CPI automatically: the brief's named *"keeper bot,"* shipped.
 
 ORA is the single differentiator that hits all three hackathon tracks at once: **Prediction & Settlement**, **Trading Tools & Agents**, and **Fan Engagement**.
 
@@ -124,22 +124,22 @@ ORA is the single differentiator that hits all three hackathon tracks at once: *
 whistl-workspace/  (Turborepo)
 │
 ├── apps/
-│   ├── whistl/   🟢  The protocol — pacts, ORA, matches, proof-receipt settlement
-│   ├── pulse/    🔵  Consumer app — commentary, sweepstakes, Hi-Lo, push, Agent Mind
-│   └── trader/   🟠  TxAgent Desk — NL strategy → backtest → deploy agent
+│   ├── whistl/   🟢  The protocol: pacts, ORA, matches, proof-receipt settlement, keeper
+│   ├── pulse/    🔵  Consumer app: commentary, sweepstakes, Hi-Lo, push, Agent Mind
+│   └── trader/   🟠  TxAgent Desk: NL strategy → backtest → deploy agent
 │
 ├── packages/
-│   └── core/     🔗  @whistl/core — shared TxLINE client (mints+caches guest JWT,
+│   └── core/     🔗  @whistl/core: shared TxLINE client (mints+caches guest JWT,
 │                     attaches both auth headers), shared types. One data layer.
 │
-├── whistl/programs/whistl/   ⚙️  Anchor settlement engine (Rust) — the scored core
+├── whistl/programs/whistl/   ⚙️  Anchor settlement engine (Rust): the scored core
 │
-├── agent/        🛰️  OOBE keeper — detect finished pacts → auto-settle → on-chain memory
+├── bots/         🤖  Live Telegram bots (WHISTL · PULSE · TxAgent) broadcasting scores
 │
-└── derisk/       🔬  Runnable proof spikes (Node) — the entire money path, de-risked
+└── derisk/       🔬  Runnable proof spikes (Node): the entire money path, de-risked
 ```
 
-**Everything marked `[shared]` in the env is identical across all three apps** — same ORA wallet, same TxLINE token, same Supabase, same on-chain program. Three products, one source of truth.
+**Everything marked `[shared]` in the env is identical across all three apps:** same ORA wallet, same TxLINE token, same Supabase, same on-chain program. Three products, one source of truth.
 
 ---
 
@@ -147,28 +147,28 @@ whistl-workspace/  (Turborepo)
 
 | Layer | Tech |
 |---|---|
-| **Data** | **TxODDS / TxLINE** — real World Cup fixtures, odds (SSE), scores (SSE), and Merkle stat-validation proofs |
-| **Settlement** | **Solana** + **Anchor** — custom escrow engine CPI-ing TxODDS `validate_stat` |
-| **AI reasoning** | **AceData Cloud** (`gpt-4o-mini`) — ORA's pricing & the NL strategy compiler |
-| **Agent memory** | **OOBE Synapse** — on-chain reasoning / "glass skull" |
-| **Auth & wallets** | **Privy** — email/social login → embedded Solana wallet, per-user paper bankroll |
-| **Persistence** | **Supabase** — pacts, commentary, sweepstakes, push subscriptions |
+| **Data** | **TxODDS / TxLINE**: real World Cup fixtures, odds (SSE), scores (SSE), and Merkle stat-validation proofs |
+| **Settlement** | **Solana** + **Anchor**: custom escrow engine CPI-ing TxODDS `validate_stat` |
+| **AI reasoning** | **AceData Cloud** (`gpt-4o-mini`): ORA's pricing & the NL strategy compiler |
+| **Agent memory** | **OOBE Synapse**: on-chain reasoning / "glass skull" |
+| **Auth & wallets** | **Privy**: email/social login → embedded Solana wallet, per-user paper bankroll |
+| **Persistence** | **Supabase**: pacts, commentary, sweepstakes, push subscriptions |
 | **Frontend** | **Next.js 16** · React 19 · Tailwind v4 · App Router · PWA + Web Push |
 | **Monorepo** | **Turborepo** + npm workspaces |
 
-Design language: **"Verifiable Terminal"** — ink canvas, mono tabular numerics, a single lime `--signal` accent, and a proof-receipt hero. Deliberately anti-slop: no purple glow, no glassmorphism.
+Design language: **"Verifiable Terminal"**: ink canvas, mono tabular numerics, a single lime `--signal` accent, and a proof-receipt hero. Deliberately anti-slop: no purple glow, no glassmorphism.
 
 ---
 
 ## 🚀 Run it
 
-**Prereqs:** Node 20+, npm. (Building/deploying the Anchor program needs Solana CLI + Anchor, or the `uso` CLI — but the apps run against the already-deployed devnet program, so you don't need them to demo.)
+**Prereqs:** Node 20+, npm. (Building/deploying the Anchor program needs Solana CLI + Anchor, or the `uso` CLI, but the apps run against the already-deployed devnet program, so you don't need them to demo.)
 
 ```bash
 # 1. install the whole workspace
 npm install
 
-# 2. configure env — copy the template into whichever app you want to run
+# 2. configure env: copy the template into whichever app you want to run
 cp apps/whistl/.env.example apps/whistl/.env.local   # protocol
 cp apps/pulse/.env.example  apps/pulse/.env.local    # consumer
 cp apps/trader/.env.example apps/trader/.env.local   # trading desk
@@ -189,8 +189,8 @@ Every app shares the **same** backend, so the `[shared]` values are identical ac
 | Variable | Purpose | Scope |
 |---|---|---|
 | `TXLINE_API_TOKEN` | TxODDS data auth (from the free WC subscription) | secret · shared |
-| `ACE_API_KEY` | AceData Cloud — ORA reasoning + NL strategy compiler | secret · shared |
-| `ORA_SECRET_BASE58` | ORA wallet — signs `accept_pact` server-side | secret · shared |
+| `ACE_API_KEY` | AceData Cloud: ORA reasoning + NL strategy compiler | secret · shared |
+| `ORA_SECRET_BASE58` | ORA wallet: signs `accept_pact` server-side | secret · shared |
 | `MINT_AUTHORITY_SECRET_BASE58` | Mints devnet test-USDC for the faucet | secret · shared |
 | `PRIVY_APP_SECRET` | Privy server verification | secret · shared |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase writes | secret · shared |
@@ -201,13 +201,13 @@ Every app shares the **same** backend, so the `[shared]` values are identical ac
 | `NEXT_PUBLIC_WHISTL_PROGRAM_ID` | `BZ2pNdsvpYmeC3dfLKzpKWKqqqKxPBHMPTYr3qVTMRTz` | public · shared |
 | `NEXT_PUBLIC_TXLINE_PROGRAM_ID` | `6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J` | public · shared |
 | `NEXT_PUBLIC_TEST_USDC_MINT` | Devnet test-USDC mint (6 dec) | public · shared |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `NEXT_PRIVATE_VAPID_PRIVATE_KEY` | Web Push (Pulse alerts) — `npx web-push generate-vapid-keys` | Pulse |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `NEXT_PRIVATE_VAPID_PRIVATE_KEY` | Web Push (Pulse alerts) via `npx web-push generate-vapid-keys` | Pulse |
 
 > 🔑 Lost your `.env.local` (new laptop)? Re-activate the free TxLINE token with `node derisk/activate.mjs`, then copy the token into each `apps/*/.env.local`. The public program IDs and mint are in this table; the ORA/mint/Privy/Supabase secrets come from your own accounts.
 
 ---
 
-## 🔬 De-risk spikes — the money path, proven end to end
+## 🔬 De-risk spikes: the money path, proven end to end
 
 Everything the protocol depends on is proven by a runnable script in [`derisk/`](derisk) before any UI was written:
 
@@ -235,31 +235,31 @@ Devnet host: **`https://txline-dev.txodds.com`** (mainnet is `txline.txodds.com`
 | `GET /api/odds/*` | Odds → ORA's fair-line pricing |
 | `SSE /api/scores/stream` · `SSE /api/odds/stream` | Live scores & odds tickers |
 
-Data calls carry **both** `Authorization: Bearer <jwt>` **and** `X-Api-Token`. Our shared [`@whistl/core`](packages/core/src/txline/server.ts) client mints + caches the JWT and attaches both headers, so the browser only ever hits our `/api/txline/*` proxy — the token is never exposed.
+Data calls carry **both** `Authorization: Bearer <jwt>` **and** `X-Api-Token`. Our shared [`@whistl/core`](packages/core/src/txline/server.ts) client mints + caches the JWT and attaches both headers, so the browser only ever hits our `/api/txline/*` proxy, and the token is never exposed.
 
 ---
 
 ## 🏆 The brief, and why we win it
 
-*Prediction Markets & Settlement — 1st: 12k / 2nd: 4k / 3rd: 2k USDT*
+*Prediction Markets & Settlement · 1st: 12k / 2nd: 4k / 3rd: 2k USDT*
 
 | The brief asks for… | What we shipped |
 |---|---|
 | A custom settlement engine on top of TxLINE | ✅ Hardened Anchor program CPI-ing `validate_stat`, deployed & executable on devnet |
-| TxLINE as the **primary** data source | ✅ Fixtures, odds, scores, and proofs — all TxODDS, one shared client |
+| TxLINE as the **primary** data source | ✅ Fixtures, odds, scores, and proofs, all TxODDS, one shared client |
 | Deterministic, clean resolution code | ✅ Settlement is a pure function of on-chain Merkle data; provenance-checked; ~5.8k CU |
-| A "Verifiable Resolution UI" | ✅ The **proof receipt** — every settlement shows the proof that decided it |
+| A "Verifiable Resolution UI" | ✅ The **proof receipt**: every settlement shows the proof that decided it |
 | A keeper bot | ✅ ORA's OOBE keeper auto-settles finished pacts |
 | Live **or simulated** feeds accepted | ✅ Replay mode demos the full create→live→settle→payout flow on finished matches |
 | Public repo · deployed build · demo video · endpoint list · API feedback | ✅ / ✅ / 🎥 / ☝️ / 📝 |
 
-We didn't rebuild the judges' protocol — we built the **product experience** and the **settlement engine** the brief explicitly invites, around TxODDS's primitives, three times, for three different humans.
+We didn't rebuild the judges' protocol. We built the **product experience** and the **settlement engine** the brief explicitly invites, around TxODDS's primitives, three times, for three different humans.
 
 ---
 
 <div align="center">
 
-**WHISTL** — *the whistle blows, the chain decides.*
+**WHISTL** · *the whistle blows, the chain decides.*
 
 Built for the World Cup Hackathon 2026 · Superteam Earn × TxODDS
 Data by [TxODDS](https://txline-docs.txodds.com) · Agent memory by [OOBE](https://github.com/OOBE-PROTOCOL) · Reasoning by [AceData Cloud](https://platform.acedata.cloud)
