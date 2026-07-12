@@ -1,5 +1,6 @@
 # Secrets
 .env
+.env*
 .env.local
 *.keypair.json
 id.json
@@ -15,18 +16,32 @@ target/
 .anchor/
 test-ledger/
 
-# Misc
+# Vendored Rust deps (regenerable via cargo vendor)
+whistl/vendor/
+
+# Build caches / deploy metadata
+.vercel/
+.turbo/
+
+# Editor / IDE
 .DS_Store
 *.log
+.history/
 
 # Local scratch scripts with hardcoded keys — NEVER commit
 scratch_fund.js
 **/scratch_fund.js
 
-# Vendored Rust deps (regenerable via cargo vendor)
-whistl/vendor/
-.vercel
-.env*
+# AI assistant context (local-only, not part of the deliverable)
+CLAUDE.md
+**/CLAUDE.md
+
+# Demo scripts / run-of-show notes (local-only)
+DEMO_SCRIPTS.md
+DEMO_SCRIPTS*.md
+
+# Internal build/scaffold state
+.superstack/
 
 # Telegram bot subscriber lists
 bots/.subs-*.json
